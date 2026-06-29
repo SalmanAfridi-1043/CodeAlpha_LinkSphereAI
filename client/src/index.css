@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #6C63FF;
+  --secondary: #1E1E2E;
+  --accent: #FF6584;
+  --dark: #0F0F1A;
+  --light: #F5F5FF;
+}
+
+body {
+  background-color: #0F0F1A;
+  color: #F5F5FF;
+  font-family: 'Inter', sans-serif;
+}
+
+@keyframes borderGlow {
+  0% {
+    border-color: #6C63FF;
+  }
+  50% {
+    border-color: #FF6584;
+  }
+  100% {
+    border-color: #6C63FF;
+  }
+}
+
+.login-card {
+  animation: borderGlow 3s ease-in-out infinite;
+}
