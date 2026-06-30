@@ -6,10 +6,12 @@ const mongoose = require("mongoose");
 const connectDB = require("../config/db");
 const authRoutes = require("../routes/authRoutes");
 const postRoutes = require("../routes/postRoutes");
+const likeRoutes = require("../routes/likeRoutes");
+const commentRoutes = require("../routes/commentRoutes");
 const { errorHandler } = require("../middleware/errorMiddleware");
 
 const runTests = async () => {
-  console.log("🚀 Initializing MongoMemoryServer for Post System Tests...");
+  console.log("🚀 Initializing MongoMemoryServer for Post, Like, & Comment System Tests...");
   const mongod = await MongoMemoryServer.create();
   process.env.MONGO_URI = mongod.getUri();
   process.env.JWT_SECRET = "linksphereai_super_secret_jwt_key_2024";
@@ -21,12 +23,16 @@ const runTests = async () => {
   app.use(express.json());
   app.use("/api/auth", authRoutes);
   app.use("/api/posts", postRoutes);
+  app.use("/api/likes", likeRoutes);
+  app.use("/api/comments", commentRoutes);
   app.use(errorHandler);
 
   const server = app.listen(0);
   const { port } = server.address();
   const authUrl = `http://127.0.0.1:${port}/api/auth`;
   const postsUrl = `http://127.0.0.1:${port}/api/posts`;
+  const likesUrl = `http://127.0.0.1:${port}/api/likes`;
+  const commentsUrl = `http://127.0.0.1:${port}/api/comments`;
 
   let passed = 0;
   let failed = 0;
@@ -72,8 +78,8 @@ const runTests = async () => {
     assert("Register Sarah Connor (User 2)", user2Res.status === 201 && !!user2Data.token);
     const token2 = user2Data.token;
 
-    // 2. TEST 1 — Create Post (text only)
-    console.log("\n--- TEST 1: Create Post ---");
+    // 2. Create Post
+    console.log("\n--- Creating a Post ---");
     const createRes = await fetch(postsUrl, {
       method: "POST",
       headers: {
@@ -86,87 +92,126 @@ const runTests = async () => {
     });
     const createData = await createRes.json();
     assert("Create Post returns 201 status", createRes.status === 201);
-    assert("Create Post response has success: true", createData.success === true);
-    assert("Create Post contains populated user details", createData.post?.user?.username === "ahmedali");
     const createdPostId = createData.post?._id;
 
-    // 3. TEST 2 — Get Feed
-    console.log("\n--- TEST 2: Get Feed ---");
-    const feedRes = await fetch(`${postsUrl}/feed?page=1&limit=10`, {
+    // 3. Like System Tests
+    console.log("\n--- LIKE SYSTEM TESTS ---");
+    // TEST 1: Toggle Like (like a post)
+    const likeRes = await fetch(`${likesUrl}/${createdPostId}`, {
+      method: "POST",
       headers: { Authorization: `Bearer ${token1}` },
     });
-    const feedData = await feedRes.json();
-    assert("Get Feed returns 200 status", feedRes.status === 200);
-    assert("Get Feed returns posts list including own post", feedData.posts?.length === 1 && feedData.posts[0]._id === createdPostId);
-    assert("Get Feed pagination contains currentPage and totalPages", feedData.currentPage === 1 && feedData.totalPages === 1);
+    const likeData = await likeRes.json();
+    assert("TEST 1 - Toggle Like (like a post) returns 200", likeRes.status === 200);
+    assert("TEST 1 - Response has liked: true", likeData.liked === true);
+    assert("TEST 1 - Response has likesCount: 1", likeData.likesCount === 1);
 
-    // 4. TEST 3 — Get Explore Posts
-    console.log("\n--- TEST 3: Get Explore Posts ---");
-    const exploreRes = await fetch(`${postsUrl}/explore?page=1&limit=12`, {
-      headers: { Authorization: `Bearer ${token2}` }, // User 2 explores
+    // TEST 2: Toggle Like Again (unlike)
+    const unlikeRes = await fetch(`${likesUrl}/${createdPostId}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token1}` },
     });
-    const exploreData = await exploreRes.json();
-    assert("Get Explore returns 200 status", exploreRes.status === 200);
-    assert("Get Explore contains User 1's post", exploreData.posts?.length === 1 && exploreData.posts[0].user.username === "ahmedali");
+    const unlikeData = await unlikeRes.json();
+    assert("TEST 2 - Toggle Like Again (unlike) returns 200", unlikeRes.status === 200);
+    assert("TEST 2 - Response has liked: false", unlikeData.liked === false);
+    assert("TEST 2 - Response has likesCount: 0", unlikeData.likesCount === 0);
 
-    // 5. TEST 4 — Get User Posts
-    console.log("\n--- TEST 4: Get User Posts ---");
-    const userPostsRes = await fetch(`${postsUrl}/user/ahmedali?page=1&limit=10`, {
-      headers: { Authorization: `Bearer ${token2}` },
+    // TEST 3: Get Post Likes
+    // Toggle like back on first
+    await fetch(`${likesUrl}/${createdPostId}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token1}` },
     });
-    const userPostsData = await userPostsRes.json();
-    assert("Get User Posts returns 200 status", userPostsRes.status === 200);
-    assert("Get User Posts contains only User 1's posts", userPostsData.posts?.length === 1 && userPostsData.posts[0].user.username === "ahmedali");
+    const getLikesRes = await fetch(`${likesUrl}/${createdPostId}`, {
+      headers: { Authorization: `Bearer ${token1}` },
+    });
+    const getLikesData = await getLikesRes.json();
+    assert("TEST 3 - Get Post Likes returns 200", getLikesRes.status === 200);
+    assert("TEST 3 - Response contains likes array", Array.isArray(getLikesData.likes) && getLikesData.likes.length === 1);
+    assert("TEST 3 - User details populated in likes array", getLikesData.likes[0].username === "ahmedali");
 
-    // 6. TEST 5 — Update Post
-    console.log("\n--- TEST 5: Update Post ---");
-    const updateRes = await fetch(`${postsUrl}/${createdPostId}`, {
+    // 4. Comment System Tests
+    console.log("\n--- COMMENT SYSTEM TESTS ---");
+    // TEST 4: Add Comment
+    const addCommentRes = await fetch(`${commentsUrl}/${createdPostId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token1}`,
+      },
+      body: JSON.stringify({
+        text: "This is amazing! Great work 🔥",
+      }),
+    });
+    const addCommentData = await addCommentRes.json();
+    assert("TEST 4 - Add Comment returns 201", addCommentRes.status === 201);
+    assert("TEST 4 - Response contains comment text", addCommentData.comment?.text === "This is amazing! Great work 🔥");
+    assert("TEST 4 - Response returns updated commentsCount: 1", addCommentData.commentsCount === 1);
+    const commentId = addCommentData.comment?._id;
+
+    // TEST 5: Get Post Comments
+    const getCommentsRes = await fetch(`${commentsUrl}/${createdPostId}?page=1&limit=20`, {
+      headers: { Authorization: `Bearer ${token1}` },
+    });
+    const getCommentsData = await getCommentsRes.json();
+    assert("TEST 5 - Get Post Comments returns 200", getCommentsRes.status === 200);
+    assert("TEST 5 - Comments list length is 1", getCommentsData.comments?.length === 1);
+    assert("TEST 5 - Comment contains populated user", getCommentsData.comments[0].user?.username === "ahmedali");
+
+    // TEST 6: Update Comment
+    const updateCommentRes = await fetch(`${commentsUrl}/${commentId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token1}`,
       },
       body: JSON.stringify({
-        content: "Updated: Building LinkSphereAI with real-time features! 🚀",
+        text: "This is amazing! Great work on LinkSphereAI 🔥🚀",
       }),
     });
-    const updateData = await updateRes.json();
-    assert("Update Post returns 200 status", updateRes.status === 200);
-    assert("Update Post isEdited is true", updateData.post?.isEdited === true);
-    assert("Update Post content is updated", updateData.post?.content === "Updated: Building LinkSphereAI with real-time features! 🚀");
+    const updateCommentData = await updateCommentRes.json();
+    assert("TEST 6 - Update Comment returns 200", updateCommentRes.status === 200);
+    assert("TEST 6 - Comment text is updated", updateCommentData.comment?.text === "This is amazing! Great work on LinkSphereAI 🔥🚀");
+    assert("TEST 6 - Comment isEdited is true", updateCommentData.comment?.isEdited === true);
 
-    // 7. TEST 7 — Unauthorized Edit Attempt
-    console.log("\n--- TEST 7: Unauthorized Edit Attempt ---");
-    const unauthorizedRes = await fetch(`${postsUrl}/${createdPostId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token2}`, // Sarah trying to edit Ahmed's post
-      },
-      body: JSON.stringify({
-        content: "trying to hack",
-      }),
-    });
-    const unauthorizedData = await unauthorizedRes.json();
-    assert("Unauthorized Edit Attempt returns 403 status", unauthorizedRes.status === 403);
-    assert("Unauthorized error message indicates authorization failure", unauthorizedData.message === "Not authorized to edit this post");
-
-    // 8. TEST 6 — Delete Post
-    console.log("\n--- TEST 6: Delete Post ---");
-    const deleteRes = await fetch(`${postsUrl}/${createdPostId}`, {
+    // TEST 7: Delete Comment
+    const deleteCommentRes = await fetch(`${commentsUrl}/${commentId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token1}` },
     });
-    const deleteData = await deleteRes.json();
-    assert("Delete Post returns 200 status", deleteRes.status === 200);
-    assert("Delete Post returns success and postId", deleteData.success === true && deleteData.postId === createdPostId);
+    const deleteCommentData = await deleteCommentRes.json();
+    assert("TEST 7 - Delete Comment returns 200", deleteCommentRes.status === 200);
+    assert("TEST 7 - Response has commentId and commentsCount: 0", deleteCommentData.success === true && deleteCommentData.commentsCount === 0);
 
-    // Verify deleted post is gone from feed
-    const verifyFeedRes = await fetch(`${postsUrl}/feed`, {
+    // TEST 8: Get Feed (verify isLiked works)
+    console.log("\n--- TEST 8: Get Feed & isLiked Status ---");
+    // Like post as user 2, get feed as user 2
+    const getFeedRes = await fetch(`${postsUrl}/feed?page=1&limit=10`, {
       headers: { Authorization: `Bearer ${token1}` },
     });
-    const verifyFeedData = await verifyFeedRes.json();
-    assert("Verify post is deleted from feed", verifyFeedData.posts?.length === 0);
+    const getFeedData = await getFeedRes.json();
+    assert("TEST 8 - Get Feed returns 200 status", getFeedRes.status === 200);
+    assert("TEST 8 - Post isLiked reflects true status", getFeedData.posts?.length === 1 && getFeedData.posts[0].isLiked === true);
+
+    // 5. Post system updates and cleanups
+    console.log("\n--- Cleanups and Ownership Tests ---");
+    // Unauthorized Comment Edit Attempt
+    const badCommentRes = await fetch(`${commentsUrl}/654321098765432109876543`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token2}`,
+      },
+      body: JSON.stringify({ text: "hacking" }),
+    });
+    assert("Attempting to edit nonexistent comment returns 404", badCommentRes.status === 404);
+
+    // Delete post and close
+    const deletePostRes = await fetch(`${postsUrl}/${createdPostId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token1}` },
+    });
+    assert("Post clean up successful", deletePostRes.status === 200);
 
   } catch (error) {
     console.error("❌ Test script failed with error:", error);

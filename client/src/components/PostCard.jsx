@@ -5,11 +5,13 @@ import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import formatDate from "../utils/formatDate";
 import Avatar from "./Avatar";
+import Spinner from "./Spinner";
 
 const PostCard = ({ post, onDelete, onUpdate }) => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
 
+  // Post Card core states
   const [showMenu, setShowMenu] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
@@ -17,9 +19,36 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
   const [isDeletingConfirm, setIsDeletingConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Likes and Comments dynamic states (Part 5 additions)
+  const [isLiked, setIsLiked] = useState(post.isLiked);
+  const [likesCount, setLikesCount] = useState(post.likesCount);
+  const [commentsCount, setCommentsCount] = useState(post.commentsCount);
+  
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
+  const [commentDeletingId, setCommentDeletingId] = useState(null);
+  
+  const [loadingCommentsMore, setLoadingCommentsMore] = useState(false);
+  const [commentsPage, setCommentsPage] = useState(1);
+  const [commentsHasMore, setCommentsHasMore] = useState(false);
+
   const menuRef = useRef(null);
 
   const isOwner = currentUser && post.user && (post.user._id === currentUser._id || post.user === currentUser._id);
+
+  // Sync state values if props change
+  useEffect(() => {
+    setIsLiked(post.isLiked);
+    setLikesCount(post.likesCount);
+    setCommentsCount(post.commentsCount);
+    setEditContent(post.content);
+  }, [post]);
 
   // Close menu on click outside
   useEffect(() => {
@@ -91,6 +120,141 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
     const postUrl = `${window.location.origin}/profile/${post.user?.username || ""}`;
     navigator.clipboard.writeText(postUrl);
     toast.success("Profile link copied to clipboard!");
+  };
+
+  // Like Action (Optimistic toggle - Part 5)
+  const handleLike = async () => {
+    const originalIsLiked = isLiked;
+    const originalLikesCount = likesCount;
+
+    // Optimistic Update
+    setIsLiked(!isLiked);
+    setLikesCount(isLiked ? Math.max(0, likesCount - 1) : likesCount + 1);
+
+    try {
+      const { data } = await api.post(`/likes/${post._id}`);
+      if (data.success) {
+        // Sync states with server response
+        setIsLiked(data.liked);
+        setLikesCount(data.likesCount);
+      }
+    } catch (err) {
+      // Revert on failure
+      setIsLiked(originalIsLiked);
+      setLikesCount(originalLikesCount);
+      toast.error(err.response?.data?.message || "Something went wrong");
+    }
+  };
+
+  // Fetch comments (Part 5)
+  const fetchComments = async (pageNumber = 1, isInitial = false) => {
+    if (isInitial) {
+      setCommentsLoading(true);
+    } else {
+      setLoadingCommentsMore(true);
+    }
+
+    try {
+      const { data } = await api.get(`/comments/${post._id}?page=${pageNumber}&limit=20`);
+      if (data.success) {
+        if (isInitial) {
+          setComments(data.comments);
+        } else {
+          setComments((prev) => {
+            const existingIds = new Set(prev.map((c) => c._id));
+            const newComments = data.comments.filter((c) => !existingIds.has(c._id));
+            return [...prev, ...newComments];
+          });
+        }
+        setCommentsHasMore(data.hasMore);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to load comments");
+    } finally {
+      setCommentsLoading(false);
+      setLoadingCommentsMore(false);
+    }
+  };
+
+  // Toggle comments drawer view (Part 5)
+  const handleCommentToggle = () => {
+    const newShow = !showComments;
+    setShowComments(newShow);
+    if (newShow && comments.length === 0) {
+      fetchComments(1, true);
+      setCommentsPage(1);
+    }
+  };
+
+  // Submit a comment (Part 5)
+  const handleAddCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    if (newComment.trim().length > 300) {
+      toast.error("Comment cannot exceed 300 characters");
+      return;
+    }
+
+    setPostingComment(true);
+    try {
+      const { data } = await api.post(`/comments/${post._id}`, { text: newComment.trim() });
+      if (data.success) {
+        setComments((prev) => [data.comment, ...prev]);
+        setNewComment("");
+        setCommentsCount(data.commentsCount);
+        toast.success("Comment added");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to add comment");
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
+  // Save modified comment (Part 5)
+  const handleSaveCommentEdit = async (commentId) => {
+    if (!editingCommentText.trim()) return;
+    
+    if (editingCommentText.trim().length > 300) {
+      toast.error("Comment cannot exceed 300 characters");
+      return;
+    }
+
+    try {
+      const { data } = await api.put(`/comments/${commentId}`, { text: editingCommentText.trim() });
+      if (data.success) {
+        setComments((prev) =>
+          prev.map((c) => (c._id === commentId ? data.comment : c))
+        );
+        setEditingCommentId(null);
+        setEditingCommentText("");
+        toast.success("Comment updated");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to edit comment");
+    }
+  };
+
+  // Delete comment (Part 5)
+  const handleDeleteComment = async (commentId) => {
+    try {
+      const { data } = await api.delete(`/comments/${commentId}`);
+      if (data.success) {
+        setComments((prev) => prev.filter((c) => c._id !== commentId));
+        setCommentsCount(data.commentsCount);
+        setCommentDeletingId(null);
+        toast.success("Comment deleted");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete comment");
+    }
+  };
+
+  const loadMoreComments = () => {
+    const nextPage = commentsPage + 1;
+    fetchComments(nextPage);
+    setCommentsPage(nextPage);
   };
 
   return (
@@ -246,26 +410,46 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
       <div className="flex items-center gap-6 border-t border-[#3A3A5E] pt-3 mt-4 select-none">
         {/* Like Button */}
         <button
-          className="flex items-center gap-2 text-[#A0A0C0] text-sm hover:scale-105 hover:text-[#FF6584] transition duration-200 group"
+          onClick={handleLike}
+          className={`flex items-center gap-2 text-sm hover:scale-105 transition duration-200 group active:scale-95 ${
+            isLiked ? "text-[#FF6584]" : "text-[#A0A0C0] hover:text-[#FF6584]"
+          }`}
           aria-label="Like Post"
         >
-          <svg
-            className="w-5 h-5 fill-none stroke-current group-hover:fill-[#FF6584]/20"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-            />
-          </svg>
-          <span className="font-medium">{post.likesCount}</span>
+          {isLiked ? (
+            <svg
+              className="w-5 h-5 fill-[#FF6584] stroke-[#FF6584] transition-transform duration-300"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="w-5 h-5 fill-none stroke-current group-hover:fill-[#FF6584]/20 transition-transform duration-300"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
+          )}
+          <span className="font-medium">{likesCount}</span>
         </button>
 
         {/* Comment Button */}
         <button
-          className="flex items-center gap-2 text-[#A0A0C0] text-sm hover:scale-105 hover:text-primary transition duration-200"
+          onClick={handleCommentToggle}
+          className={`flex items-center gap-2 text-sm hover:scale-105 hover:text-primary transition duration-200 ${
+            showComments ? "text-primary" : "text-[#A0A0C0]"
+          }`}
           aria-label="Comment on Post"
         >
           <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24">
@@ -276,7 +460,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
               d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
             />
           </svg>
-          <span className="font-medium">{post.commentsCount}</span>
+          <span className="font-medium">{commentsCount}</span>
         </button>
 
         {/* Share Button */}
@@ -296,6 +480,176 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
           <span className="font-medium">Share</span>
         </button>
       </div>
+
+      {/* Comments Drawer (Part 5) */}
+      {showComments && (
+        <div className="border-t border-[#3A3A5E] pt-3 mt-3 space-y-3 animate-fadeIn">
+          {/* Comment Form */}
+          <form onSubmit={handleAddCommentSubmit} className="flex gap-2.5 items-center">
+            <Avatar user={currentUser} size="sm" className="w-8 h-8" />
+            <input
+              type="text"
+              placeholder="Write a comment..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              maxLength={300}
+              disabled={postingComment}
+              className="bg-[#2A2A3E] text-white placeholder-[#A0A0C0] rounded-full px-4 py-2 text-sm flex-1 border border-[#3A3A5E] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+            />
+            <button
+              type="submit"
+              disabled={!newComment.trim() || postingComment}
+              className="bg-gradient-to-r from-primary to-accent hover:opacity-90 disabled:opacity-50 text-white rounded-full p-2 w-9 h-9 flex items-center justify-center flex-shrink-0 transition duration-200 shadow-md"
+              aria-label="Submit Comment"
+            >
+              {postingComment ? (
+                <Spinner size="sm" color="#ffffff" />
+              ) : (
+                <svg className="w-4 h-4 text-white transform rotate-45 -translate-x-[1px] translate-y-[1px]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              )}
+            </button>
+          </form>
+
+          {/* Comments Loading Skeletons */}
+          {commentsLoading ? (
+            <div className="space-y-3 mt-4 animate-pulse">
+              {[1, 2].map((i) => (
+                <div key={i} className="flex gap-2.5 items-start">
+                  <div className="w-8 h-8 bg-[#2A2A3E] rounded-full flex-shrink-0" />
+                  <div className="bg-[#2A2A3E] rounded-2xl p-3 h-10 w-2/3" />
+                </div>
+              ))}
+            </div>
+          ) : comments.length === 0 ? (
+            <div className="text-center py-4 text-[#A0A0C0] text-xs select-none">
+              No comments yet. Be the first!
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+              {comments.map((comment) => (
+                <div key={comment._id} className="flex gap-2.5 items-start mt-2 group/comment relative">
+                  <Avatar user={comment.user} size="sm" className="w-8 h-8" />
+                  <div className="flex-1">
+                    {editingCommentId === comment._id ? (
+                      <div className="space-y-2 bg-[#2A2A3E] rounded-2xl p-3 border border-[#3A3A5E]">
+                        <textarea
+                          value={editingCommentText}
+                          onChange={(e) => setEditingCommentText(e.target.value)}
+                          maxLength={300}
+                          className="w-full bg-[#1E1E2E] border border-[#3A3A5E] text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary resize-none text-[13px]"
+                        />
+                        <div className="flex justify-end gap-2 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCommentId(null);
+                              setEditingCommentText("");
+                            }}
+                            className="bg-[#1E1E2E] text-[#A0A0C0] hover:text-white px-3 py-1 rounded-lg border border-[#3A3A5E] transition"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSaveCommentEdit(comment._id)}
+                            className="bg-primary text-white px-3 py-1 rounded-lg font-semibold transition"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="bg-[#2A2A3E] rounded-2xl px-3.5 py-2 inline-block max-w-[95%] border border-[#2A2A3E] group-hover/comment:border-[#3A3A5E] transition-colors duration-200">
+                          <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                            <span className="font-semibold text-white text-xs leading-none">
+                              {comment.user?.name || "User"}
+                            </span>
+                            {comment.user?.isVerified && (
+                              <svg className="w-3 h-3 text-primary fill-current" viewBox="0 0 24 24">
+                                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                              </svg>
+                            )}
+                            <span className="text-[#A0A0C0] text-[10px]">
+                              @{comment.user?.username || "user"}
+                            </span>
+                          </div>
+                          <p className="text-white text-sm break-all leading-relaxed whitespace-pre-wrap">
+                            {comment.text}
+                          </p>
+                        </div>
+
+                        {/* Comment action footer metadata */}
+                        <div className="flex items-center gap-3 mt-1 ml-1.5 text-[11px] text-[#A0A0C0] select-none">
+                          <span>{formatDate(comment.createdAt)}</span>
+                          {comment.isEdited && <span>(edited)</span>}
+
+                          {currentUser && comment.user && (comment.user._id === currentUser._id || comment.user === currentUser._id) && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditingCommentId(comment._id);
+                                  setEditingCommentText(comment.text);
+                                }}
+                                className="hover:text-primary transition font-semibold"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => setCommentDeletingId(comment._id)}
+                                className="hover:text-accent transition font-semibold"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Inline delete confirmation banner */}
+                        {commentDeletingId === comment._id && (
+                          <div className="mt-2 p-2 bg-[#2A1F2D] border border-accent/20 rounded-xl flex items-center justify-between text-xs max-w-xs animate-fadeIn">
+                            <span className="text-[#FF6584] font-medium">Delete comment?</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleDeleteComment(comment._id)}
+                                className="bg-accent text-white px-2.5 py-1 rounded-lg font-semibold hover:bg-accent/80 transition"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                onClick={() => setCommentDeletingId(null)}
+                                className="bg-[#2A2A3E] text-[#A0A0C0] px-2.5 py-1 rounded-lg hover:bg-[#3A3A5E] transition"
+                              >
+                                No
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Load more comments link */}
+              {commentsHasMore && (
+                <div className="text-center pt-2">
+                  <button
+                    onClick={loadMoreComments}
+                    disabled={loadingCommentsMore}
+                    className="text-xs text-primary hover:underline font-semibold flex items-center gap-1.5 mx-auto disabled:opacity-50"
+                  >
+                    {loadingCommentsMore && <Spinner size="sm" />}
+                    {loadingCommentsMore ? "Loading..." : "Load More Comments"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Lightbox Modal */}
       {showFullImage && (

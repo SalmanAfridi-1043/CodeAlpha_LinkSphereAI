@@ -1,5 +1,24 @@
 const mongoose = require("mongoose");
 
-// Schema fields to be added in Part 2: user, post, createdAt
+const likeSchema = new mongoose.Schema(
+  {
+    post: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Post",
+      required: true,
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
 
-module.exports = {};
+// Compound unique index to prevent the same user from liking the same post twice
+likeSchema.index({ post: 1, user: 1 }, { unique: true });
+
+module.exports = mongoose.model("Like", likeSchema);

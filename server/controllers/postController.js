@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Post = require("../models/Post");
 const User = require("../models/User");
+const Like = require("../models/Like");
 
 // @desc    Create a new post
 // @route   POST /api/posts
@@ -55,10 +56,12 @@ const getFeedPosts = asyncHandler(async (req, res) => {
 
   const totalCount = await Post.countDocuments({ user: { $in: userIdsToShow } });
 
-  // Add temporary isLiked: false for frontend
+  const postIds = posts.map((p) => p._id);
+  const userLikes = await Like.find({ post: { $in: postIds }, user: req.user._id }).select("post");
+  const likedPostIds = new Set(userLikes.map((l) => l.post.toString()));
   const postsWithLikes = posts.map((post) => {
     const postObj = post.toObject();
-    postObj.isLiked = false;
+    postObj.isLiked = likedPostIds.has(post._id.toString());
     return postObj;
   });
 
@@ -88,9 +91,12 @@ const getExplorePosts = asyncHandler(async (req, res) => {
 
   const totalCount = await Post.countDocuments({});
 
+  const postIds = posts.map((p) => p._id);
+  const userLikes = await Like.find({ post: { $in: postIds }, user: req.user._id }).select("post");
+  const likedPostIds = new Set(userLikes.map((l) => l.post.toString()));
   const postsWithLikes = posts.map((post) => {
     const postObj = post.toObject();
-    postObj.isLiked = false;
+    postObj.isLiked = likedPostIds.has(post._id.toString());
     return postObj;
   });
 
@@ -126,9 +132,12 @@ const getUserPosts = asyncHandler(async (req, res) => {
 
   const totalCount = await Post.countDocuments({ user: user._id });
 
+  const postIds = posts.map((p) => p._id);
+  const userLikes = await Like.find({ post: { $in: postIds }, user: req.user._id }).select("post");
+  const likedPostIds = new Set(userLikes.map((l) => l.post.toString()));
   const postsWithLikes = posts.map((post) => {
     const postObj = post.toObject();
-    postObj.isLiked = false;
+    postObj.isLiked = likedPostIds.has(post._id.toString());
     return postObj;
   });
 
