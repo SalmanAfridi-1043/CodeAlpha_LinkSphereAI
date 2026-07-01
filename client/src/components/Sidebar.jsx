@@ -27,6 +27,19 @@ const Icons = {
       <path d="M13.73 21a2 2 0 01-3.46 0" />
     </svg>
   ),
+  Connect: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  Message: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
   Profile: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
@@ -44,11 +57,43 @@ const Icons = {
 
 const Sidebar = () => {
   const { user: currentUser } = useAuth();
-  const { unreadCount } = useSocket();
+  const { unreadCount: notificationsCount } = useSocket();
   const location = useLocation();
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+
+  // Fetch pending connections count and unread message count
+  const fetchBadgeCounts = async () => {
+    if (!currentUser) return;
+    try {
+      const [pendingRes, unreadMsgRes] = await Promise.all([
+        api.get("/connections/pending"),
+        api.get("/messages/unread-count"),
+      ]);
+      if (pendingRes.data.success) {
+        setPendingRequestsCount(pendingRes.data.count);
+      }
+      if (unreadMsgRes.data.success) {
+        setUnreadMessagesCount(unreadMsgRes.data.count);
+      }
+    } catch (err) {
+      console.error("Failed to load badge counts in Sidebar:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!currentUser) return;
+    fetchBadgeCounts();
+
+    const interval = setInterval(() => {
+      fetchBadgeCounts();
+    }, 30000); // refresh every 30s
+
+    return () => clearInterval(interval);
+  }, [currentUser, location.pathname]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -81,7 +126,9 @@ const Sidebar = () => {
   const navItems = [
     { label: "Home",          path: "/",                                Icon: Icons.Home    },
     { label: "Explore",       path: "/explore",                         Icon: Icons.Explore },
-    { label: "Notifications", path: "/notifications",                   Icon: Icons.Bell,   badge: unreadCount },
+    { label: "Notifications", path: "/notifications",                   Icon: Icons.Bell,    badge: notificationsCount },
+    { label: "Connect",       path: "/connect",                         Icon: Icons.Connect, badge: pendingRequestsCount },
+    { label: "Messages",      path: "/messages",                        Icon: Icons.Message, badge: unreadMessagesCount },
     { label: "Profile",       path: `/profile/${currentUser.username}`, Icon: Icons.Profile },
     { label: "Create Post",   path: "/create",                          Icon: Icons.Create  },
   ];
@@ -120,7 +167,7 @@ const Sidebar = () => {
                   {label}
                 </span>
 
-                {/* Notification badge */}
+                {/* Notification/Connection/Messages badge */}
                 {badge > 0 && (
                   <span className="flex-shrink-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-[16px] h-[16px] flex items-center justify-center border border-[var(--surface)] animate-pulse">
                     {badge > 9 ? "9+" : badge}

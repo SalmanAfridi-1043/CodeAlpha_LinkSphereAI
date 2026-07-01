@@ -78,6 +78,11 @@ app.use("/api/follow", followRoutes);
 const notificationRoutes = require("./routes/notificationRoutes");
 app.use("/api/notifications", notificationRoutes);
 
+const connectionRoutes = require("./routes/connectionRoutes");
+const messageRoutes = require("./routes/messageRoutes");
+app.use("/api/connections", connectionRoutes);
+app.use("/api/messages", messageRoutes);
+
 io.on("connection", (socket) => {
   onlineUsers.set(socket.userId, socket.id);
   socket.join(socket.userId);
@@ -86,6 +91,14 @@ io.on("connection", (socket) => {
 
   socket.on("get_online_users", () => {
     socket.emit("online_users_list", Array.from(onlineUsers.keys()));
+  });
+
+  socket.on("typing", ({ receiverId }) => {
+    io.to(receiverId).emit("user_typing", { senderId: socket.userId });
+  });
+
+  socket.on("stop_typing", ({ receiverId }) => {
+    io.to(receiverId).emit("user_stop_typing", { senderId: socket.userId });
   });
 
   socket.on("disconnect", () => {

@@ -11,6 +11,8 @@ import Profile from "./pages/Profile";
 import CreatePost from "./pages/CreatePost";
 import Explore from "./pages/Explore";
 import NotificationsPage from "./pages/NotificationsPage";
+import Connect from "./pages/Connect";
+import Messages from "./pages/Messages";
 import AppLayout from "./components/AppLayout";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -75,6 +77,9 @@ const App = () => {
                 <Route path="/create" element={<CreatePost />} />
                 <Route path="/profile/:username" element={<Profile />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/connect" element={<Connect />} />
+                <Route path="/messages" element={<Messages />} />
+                <Route path="/messages/:username" element={<Messages />} />
               </Route>
 
               {/* Catch-all route */}

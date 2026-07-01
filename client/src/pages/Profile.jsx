@@ -11,6 +11,7 @@ import UserListItem from "../components/UserListItem";
 import usePageTitle from "../hooks/usePageTitle";
 import ProfileSkeleton from "../components/skeletons/ProfileSkeleton";
 import EditProfileModal from "../components/EditProfileModal";
+import ConnectionButton from "../components/ConnectionButton";
 
 const Profile = () => {
   const { username } = useParams();
@@ -31,6 +32,7 @@ const Profile = () => {
   const [isFollowHovered, setIsFollowHovered] = useState(false);
   const [mutualFollowers, setMutualFollowers] = useState([]);
   const [mutualCount, setMutualCount] = useState(0);
+  const [connectionStatus, setConnectionStatus] = useState(null);
 
   // Pagination details
   const [page, setPage] = useState(1);
@@ -131,6 +133,56 @@ const Profile = () => {
       setMutualCount(0);
     }
   }, [profileUser, isOwnProfile, fetchMutualFollowers]);
+
+  // Load connection status between current user and profile user
+  useEffect(() => {
+    if (!profileUser || isOwnProfile) {
+      setConnectionStatus(null);
+      return;
+    }
+
+    const loadConnectionStatus = async () => {
+      try {
+        // 1. Fetch my connections to see if accepted
+        const { data: connData } = await api.get("/connections");
+        const isConnected = connData.connections.some(
+          (c) => c._id.toString() === profileUser._id.toString()
+        );
+        if (isConnected) {
+          setConnectionStatus("accepted");
+          return;
+        }
+
+        // 2. Fetch findPeople to see if pending (sent or received)
+        const { data: findData } = await api.get(
+          `/connections/find?q=${profileUser.username}&type=username`
+        );
+        const foundUser = findData.users.find(
+          (u) => u._id.toString() === profileUser._id.toString()
+        );
+        if (foundUser && foundUser.isPending) {
+          setConnectionStatus("pending");
+          return;
+        }
+
+        // 3. Fetch pending requests received by me
+        const { data: pendingData } = await api.get("/connections/pending");
+        const isPendingReceived = pendingData.requests.some(
+          (r) => r.sender._id.toString() === profileUser._id.toString()
+        );
+        if (isPendingReceived) {
+          setConnectionStatus("pending");
+          return;
+        }
+
+        setConnectionStatus(null);
+      } catch (err) {
+        console.error("Failed to load connection status:", err);
+      }
+    };
+
+    loadConnectionStatus();
+  }, [profileUser, isOwnProfile]);
 
   const handlePostDelete = (postId) => {
     setPosts((prevPosts) => prevPosts.filter((post) => post._id !== postId));
@@ -372,31 +424,39 @@ const Profile = () => {
                   Edit Profile
                 </button>
               ) : (
-                <button
-                  onClick={handleFollowToggle}
-                  disabled={followLoading}
-                  onMouseEnter={() => setIsFollowHovered(true)}
-                  onMouseLeave={() => setIsFollowHovered(false)}
-                  className={`text-xs md:text-sm font-semibold px-5 py-2.5 rounded-xl transition duration-200 shadow-md flex items-center justify-center min-w-[100px] ${
-                    isFollowing
-                      ? isFollowHovered
-                        ? "bg-transparent border border-red-500/50 text-red-400"
-                        : "bg-transparent border border-[#3A3A5E] text-white hover:border-[#3A3A5E]"
-                      : "bg-gradient-to-r from-primary to-accent text-white hover:opacity-95"
-                  }`}
-                >
-                  {followLoading ? (
-                    <Spinner size="sm" color="#ffffff" />
-                  ) : isFollowing ? (
-                    isFollowHovered ? (
-                      "Unfollow"
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleFollowToggle}
+                    disabled={followLoading}
+                    onMouseEnter={() => setIsFollowHovered(true)}
+                    onMouseLeave={() => setIsFollowHovered(false)}
+                    className={`text-xs md:text-sm font-semibold px-5 py-2.5 rounded-xl transition duration-200 shadow-md flex items-center justify-center min-w-[100px] ${
+                      isFollowing
+                        ? isFollowHovered
+                          ? "bg-transparent border border-red-500/50 text-red-400"
+                          : "bg-transparent border border-[#3A3A5E] text-white hover:border-[#3A3A5E]"
+                        : "bg-gradient-to-r from-primary to-accent text-white hover:opacity-95"
+                    }`}
+                  >
+                    {followLoading ? (
+                      <Spinner size="sm" color="#ffffff" />
+                    ) : isFollowing ? (
+                      isFollowHovered ? (
+                        "Unfollow"
+                      ) : (
+                        "Following"
+                      )
                     ) : (
-                      "Following"
-                    )
-                  ) : (
-                    "Follow"
-                  )}
-                </button>
+                      "Follow"
+                    )}
+                  </button>
+
+                  <ConnectionButton
+                    targetUserId={profileUser._id}
+                    targetUsername={profileUser.username}
+                    initialStatus={connectionStatus}
+                  />
+                </div>
               )}
             </div>
 
