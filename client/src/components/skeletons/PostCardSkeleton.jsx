@@ -1,6 +1,6 @@
 const PostCardSkeleton = () => {
   return (
-    <div className="bg-[#1E1E2E] rounded-2xl p-5 border border-[#3A3A5E] shadow-xl relative select-none animate-pulse">
+    <div className="bg-[#1E1E2E] rounded-2xl p-4 mb-4 border border-[#3A3A5E] shadow-xl relative select-none animate-pulse">
       {/* Header */}
       <div className="flex items-center gap-3">
         {/* Avatar Circle */}

@@ -577,7 +577,7 @@ const Profile = () => {
                   onClick={() => navigate("/create")}
                   className="bg-primary hover:bg-primary/95 text-white font-semibold text-xs px-4 py-2 rounded-xl transition shadow"
                 >
-                  Create your first post
+                  Create first post
                 </button>
               )}
             </div>

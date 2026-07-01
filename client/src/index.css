@@ -136,14 +136,14 @@ html:not(.dark) .hover\:border-primary\/50:hover {
   height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #0F0F1A;
+  background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #3A3A5E;
+  background: var(--border);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #6C63FF;
+  background: var(--primary);
 }
 
 /* Page Transitions */

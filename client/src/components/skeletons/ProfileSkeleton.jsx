@@ -9,7 +9,7 @@ const ProfileSkeleton = () => {
         {/* User Details Placeholder */}
         <div className="pt-16 pb-6 px-6 relative">
           {/* Overlapping Avatar Placeholder */}
-          <div className="absolute -top-12 left-6 w-24 h-24 md:w-28 md:h-28 rounded-full bg-[#2A2A3E] ring-4 ring-[#1E1E2E]" />
+          <div className="absolute -top-16 left-6 w-24 h-24 md:w-28 md:h-28 rounded-full bg-[#2A2A3E] ring-4 ring-[#1E1E2E]" />
 
           <div className="flex justify-between items-start">
             <div className="space-y-2.5">

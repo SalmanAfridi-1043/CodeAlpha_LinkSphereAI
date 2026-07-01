@@ -9,13 +9,13 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
-// VERCEL DEPLOYMENT:
-// 1. Go to vercel.com → New Project
-// 2. Import your GitHub repo
+// VERCEL DEPLOYMENT STEPS:
+// 1. vercel.com → New Project
+// 2. Import GitHub repo
 // 3. Root directory: client
 // 4. Framework preset: Vite
-// 5. Add env variables in Vercel dashboard:
-//    VITE_API_URL=https://linksphereai.onrender.com/api
-//    VITE_SOCKET_URL=https://linksphereai.onrender.com
-// 6. Deploy — you get a live URL instantly
+// 5. Add env vars in Vercel dashboard
+// 6. Deploy — get your live URL
+// 7. Paste live URL into Render CLIENT_URL_PROD
+
 

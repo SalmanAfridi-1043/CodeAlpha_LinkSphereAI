@@ -135,20 +135,14 @@ const Home = () => {
             </span>
             <h2 className="text-white text-xl font-bold mb-2">Your feed is empty</h2>
             <p className="text-[#A0A0C0] text-sm max-w-sm mb-6 leading-relaxed">
-              Follow people to see their posts here, or explore to discover new accounts
+              Follow people to see their posts
             </p>
             <div className="flex gap-4">
               <button
                 onClick={() => navigate("/explore")}
                 className="bg-primary hover:bg-primary/95 text-white font-semibold px-5 py-2.5 rounded-xl transition shadow-lg text-sm"
               >
-                Explore Feed
-              </button>
-              <button
-                onClick={() => navigate("/explore")}
-                className="bg-[#2A2A3E] hover:bg-[#3A3A5E] text-[#A0A0C0] hover:text-white font-semibold px-5 py-2.5 rounded-xl border border-[#3A3A5E] transition text-sm"
-              >
-                Find People
+                Explore
               </button>
             </div>
           </div>
