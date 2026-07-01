@@ -32,7 +32,7 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
     if (notification.type === "follow") {
       navigate(`/profile/${notification.sender?.username}`);
     } else {
-      // For likes and comments, navigate back to home feed or dashboard
+      // For likes, comments, and mentions, navigate back to home feed
       navigate("/");
     }
   };
@@ -75,6 +75,8 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
               actionText = "commented on your post";
             } else if (notification.type === "follow") {
               actionText = "started following you";
+            } else if (notification.type === "mention") {
+              actionText = "mentioned you in a post";
             }
 
             return (
@@ -122,6 +124,11 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
                   {notification.type === "follow" && (
                     <div className="w-7 h-7 rounded-full bg-[#00D9A3]/15 flex items-center justify-center border border-[#00D9A3]/30 shadow-[0_0_10px_rgba(0,217,163,0.15)]">
                       <span className="text-xs">👤</span>
+                    </div>
+                  )}
+                  {notification.type === "mention" && (
+                    <div className="w-7 h-7 rounded-full bg-[#8B5CF6]/15 flex items-center justify-center border border-[#8B5CF6]/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]">
+                      <span className="text-xs">🔔</span>
                     </div>
                   )}
                 </div>

@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Post = require("../models/Post");
 const User = require("../models/User");
 const Like = require("../models/Like");
+const { extractMentions, notifyMentions } = require("../utils/mentionHelper");
 
 // @desc    Create a new post
 // @route   POST /api/posts
@@ -19,16 +20,28 @@ const createPost = asyncHandler(async (req, res) => {
     throw new Error("Post must have text or an image");
   }
 
+  // Extract mention IDs from content
+  const mentionIds = await extractMentions(content);
+
   const post = await Post.create({
     user: req.user._id,
     content: content || "",
     image: image || "",
+    mentions: mentionIds,
   });
 
   const populatedPost = await Post.findById(post._id).populate(
     "user",
     "_id name username avatar isVerified followers following"
   );
+
+  // Notify mentioned users in real-time
+  const io = req.app.get("io");
+  await notifyMentions(io, {
+    mentionedIds: mentionIds,
+    senderId: req.user._id,
+    postId: post._id,
+  });
 
   res.status(201).json({
     success: true,

@@ -7,6 +7,7 @@ import useAuth from "../hooks/useAuth";
 import Spinner from "../components/Spinner";
 import Avatar from "../components/Avatar";
 import usePageTitle from "../hooks/usePageTitle";
+import MentionInput from "../components/MentionInput";
 
 const CreatePost = () => {
   const { user } = useAuth();
@@ -141,14 +142,12 @@ const CreatePost = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Text Area */}
           <div className="relative">
-            <textarea
+            <MentionInput
               placeholder="What's on your mind?"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              maxLength={500}
-              disabled={loading}
-              rows={Math.max(4, content.split("\n").length)}
-              className="w-full bg-[#2A2A3E]/30 border border-[#3A3A5E]/60 text-white rounded-xl p-4 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/45 transition-all duration-200 resize-none text-[15px]"
+              onChange={setContent}
+              className="w-full bg-[#2A2A3E]/30 border border-[#3A3A5E]/60 text-white rounded-xl p-4 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/45 transition-all duration-200 text-[15px]"
+              style={{ minHeight: "120px" }}
             />
             <div className={`absolute bottom-3 right-4 text-xs select-none font-semibold transition-colors duration-200 ${
               content.length > 400 ? "text-accent animate-pulse" : "text-[#A0A0C0]"

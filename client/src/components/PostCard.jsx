@@ -7,11 +7,37 @@ import formatDate from "../utils/formatDate";
 import Avatar from "./Avatar";
 import Spinner from "./Spinner";
 import useSocket from "../hooks/useSocket";
+import MentionInput from "./MentionInput";
 
 const PostCard = ({ post, onDelete, onUpdate }) => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
   const { socket: _socket } = useSocket();
+
+  const renderTextWithMentions = (text) => {
+    if (!text) return "";
+
+    const regex = /(@[a-zA-Z0-9_]+)/g;
+    const parts = text.split(regex);
+
+    return parts.map((part, index) => {
+      if (part.startsWith("@")) {
+        return (
+          <span
+            key={index}
+            className="text-[#6C63FF] font-medium hover:underline cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/profile/${part.slice(1)}`);
+            }}
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
+  };
 
   useEffect(() => {
     // Real-time per-post like/comment sync via socket rooms is a possible future enhancement — for now, the notification system handles cross-user awareness, and optimistic updates handle the acting user's own UI
@@ -391,7 +417,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
           </form>
         ) : (
           <p className="text-white text-[15px] leading-relaxed whitespace-pre-wrap">
-            {post.content}
+            {renderTextWithMentions(post.content)}
             {post.isEdited && (
               <span className="text-xs text-[#A0A0C0] ml-1.5 inline-block select-none">
                 (edited)
@@ -487,14 +513,12 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
           {/* Comment Form */}
           <form onSubmit={handleAddCommentSubmit} className="flex gap-2.5 items-center">
             <Avatar user={currentUser} size="sm" className="w-8 h-8" />
-            <input
-              type="text"
+            <MentionInput
               placeholder="Write a comment..."
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              maxLength={300}
-              disabled={postingComment}
-              className="bg-[#2A2A3E] text-white placeholder-[#A0A0C0] rounded-full px-4 py-2 text-sm flex-1 border border-[#3A3A5E] focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+              onChange={setNewComment}
+              className="bg-[#2A2A3E] text-white placeholder-[#A0A0C0] rounded-[18px] px-4 py-2 text-sm flex-1 border border-[#3A3A5E] focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all"
+              style={{ minHeight: "38px", height: "38px", overflow: "hidden", lineHeight: "1.4" }}
             />
             <button
               type="submit"
@@ -577,7 +601,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
                             </span>
                           </div>
                           <p className="text-white text-sm break-all leading-relaxed whitespace-pre-wrap">
-                            {comment.text}
+                            {renderTextWithMentions(comment.text)}
                           </p>
                         </div>
 

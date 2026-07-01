@@ -3,6 +3,7 @@ const asyncHandler = require("express-async-handler");
 const Comment = require("../models/Comment");
 const Post = require("../models/Post");
 const createNotification = require("../utils/notificationHelper");
+const { extractMentions, notifyMentions } = require("../utils/mentionHelper");
 
 // @desc    Add a comment to a post
 // @route   POST /api/comments/:postId
@@ -27,10 +28,14 @@ const addComment = asyncHandler(async (req, res) => {
     throw new Error("Post not found");
   }
 
+  // Extract mention IDs from comment text
+  const mentionIds = await extractMentions(text);
+
   const comment = await Comment.create({
     post: postId,
     user: req.user._id,
     text: text.trim(),
+    mentions: mentionIds,
   });
 
   post.commentsCount += 1;
@@ -42,8 +47,16 @@ const addComment = asyncHandler(async (req, res) => {
     "_id name username avatar isVerified followers following"
   );
 
+  const io = req.app.get("io");
+
+  // Notify mentioned users in real-time
+  await notifyMentions(io, {
+    mentionedIds: mentionIds,
+    senderId: req.user._id,
+    postId: post._id,
+  });
+
   if (post.user.toString() !== req.user._id.toString()) {
-    const io = req.app.get("io");
     await createNotification(io, {
       recipientId: post.user,
       senderId: req.user._id,
