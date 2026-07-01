@@ -6,10 +6,11 @@ import useAuth from "../hooks/useAuth";
 import Spinner from "../components/Spinner";
 import Avatar from "../components/Avatar";
 import PostCard from "../components/PostCard";
+import UserListItem from "../components/UserListItem";
 
 const Profile = () => {
-  const { id: username } = useParams();
-  const { user: currentUser } = useAuth();
+  const { username } = useParams();
+  const { user: currentUser, updateUser } = useAuth();
   const navigate = useNavigate();
 
   const [profileUser, setProfileUser] = useState(null);
@@ -18,6 +19,13 @@ const Profile = () => {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [activeTab, setActiveTab] = useState("posts");
   
+  // Follow states (Part 6 additions)
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [isFollowHovered, setIsFollowHovered] = useState(false);
+  const [mutualFollowers, setMutualFollowers] = useState([]);
+  const [mutualCount, setMutualCount] = useState(0);
+
   // Pagination details
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -26,13 +34,21 @@ const Profile = () => {
 
   const isOwnProfile = currentUser && currentUser.username === username?.toLowerCase();
 
-  // Fetch profile user's basic details (using our custom profile endpoint)
+  // Fetch profile user's basic details (populated with followers and following)
   const fetchProfileUser = useCallback(async () => {
     setLoadingUser(true);
     try {
       const { data } = await api.get(`/posts/profile/${username}`);
       if (data.success) {
         setProfileUser(data.user);
+        
+        // Check initial following status
+        if (currentUser && data.user) {
+          const followingStatus = (currentUser.following || []).some(
+            (id) => id.toString() === data.user._id.toString()
+          );
+          setIsFollowing(followingStatus);
+        }
       }
     } catch (err) {
       const message = err.response?.data?.message || "User profile not found";
@@ -41,7 +57,20 @@ const Profile = () => {
     } finally {
       setLoadingUser(false);
     }
-  }, [username, navigate]);
+  }, [username, currentUser, navigate]);
+
+  // Fetch mutual followers (Part 6)
+  const fetchMutualFollowers = useCallback(async (userId) => {
+    try {
+      const { data } = await api.get(`/follow/mutual/${userId}`);
+      if (data.success) {
+        setMutualFollowers(data.mutualFollowers);
+        setMutualCount(data.mutualCount);
+      }
+    } catch (err) {
+      console.error("Failed to load mutual followers:", err);
+    }
+  }, []);
 
   // Fetch posts for the profile user
   const fetchUserPosts = useCallback(async (pageNumber, isInitial = false) => {
@@ -65,10 +94,7 @@ const Profile = () => {
         }
         setHasMore(data.hasMore);
         
-        // Update stats posts count locally
         if (data.currentPage === 1) {
-          // If server supports pagination, it returns total posts count or totalPages
-          // If totalPosts is not returned, we can estimate or fallback
           setTotalPostsCount(data.totalPosts || data.posts.length);
         }
       }
@@ -81,7 +107,7 @@ const Profile = () => {
     }
   }, [username]);
 
-  // Initialize and reload on username change
+  // Initialize and reload on username/currentUser changes
   useEffect(() => {
     if (username) {
       fetchProfileUser();
@@ -89,6 +115,16 @@ const Profile = () => {
       setPage(1);
     }
   }, [username, fetchProfileUser, fetchUserPosts]);
+
+  // Fetch mutual followers if profile user loaded and it is not own profile
+  useEffect(() => {
+    if (profileUser && !isOwnProfile) {
+      fetchMutualFollowers(profileUser._id);
+    } else {
+      setMutualFollowers([]);
+      setMutualCount(0);
+    }
+  }, [profileUser, isOwnProfile, fetchMutualFollowers]);
 
   const handlePostDelete = (postId) => {
     setPosts((prevPosts) => prevPosts.filter((post) => post._id !== postId));
@@ -112,11 +148,131 @@ const Profile = () => {
     });
   };
 
-  const handleFollowClick = () => {
-    toast.success(`You started following @${profileUser.username}!`);
+  // Follow/Unfollow Button Action (Optimistic updates - Part 6)
+  const handleFollowToggle = async () => {
+    if (!currentUser || !profileUser) return;
+
+    setFollowLoading(true);
+
+    const originalIsFollowing = isFollowing;
+
+    // Optimistically update states
+    setIsFollowing(!isFollowing);
+    
+    // Create copy to optimistically update count and arrays
+    let updatedFollowers = [...(profileUser.followers || [])];
+    if (isFollowing) {
+      updatedFollowers = updatedFollowers.filter(
+        (f) => (f._id || f).toString() !== currentUser._id.toString()
+      );
+    } else {
+      // Push current user data to profile user's followers array
+      updatedFollowers.push({
+        _id: currentUser._id,
+        name: currentUser.name,
+        username: currentUser.username,
+        avatar: currentUser.avatar,
+        isVerified: currentUser.isVerified,
+      });
+    }
+
+    setProfileUser({
+      ...profileUser,
+      followers: updatedFollowers,
+    });
+
+    try {
+      const { data } = await api.post(`/follow/${profileUser._id}`);
+      if (data.success) {
+        setIsFollowing(data.following);
+        
+        // Sync local followers count with response
+        // Re-construct populated list if backend toggled successfully
+        let finalFollowers = [...(profileUser.followers || [])];
+        if (data.following) {
+          if (!finalFollowers.some(f => (f._id || f).toString() === currentUser._id.toString())) {
+            finalFollowers.push(currentUser);
+          }
+        } else {
+          finalFollowers = finalFollowers.filter(
+            (f) => (f._id || f).toString() !== currentUser._id.toString()
+          );
+        }
+        
+        setProfileUser(prev => ({
+          ...prev,
+          followers: finalFollowers,
+        }));
+
+        // Update local AuthContext user following array
+        let updatedFollowing = [...(currentUser.following || [])];
+        if (data.following) {
+          if (!updatedFollowing.includes(profileUser._id)) {
+            updatedFollowing.push(profileUser._id);
+          }
+        } else {
+          updatedFollowing = updatedFollowing.filter(
+            (id) => id.toString() !== profileUser._id.toString()
+          );
+        }
+        updateUser({ ...currentUser, following: updatedFollowing });
+
+        toast.success(
+          data.following
+            ? `Followed @${profileUser.username}`
+            : `Unfollowed @${profileUser.username}`
+        );
+      }
+    } catch (err) {
+      // Revert states on error
+      setIsFollowing(originalIsFollowing);
+      setProfileUser(prev => ({
+        ...prev,
+        followers: prev.followers, // Keep current or fallback
+      }));
+      toast.error(err.response?.data?.message || "Failed to toggle follow");
+    } finally {
+      setFollowLoading(false);
+    }
   };
 
-  // Skeletons rendering helper
+  // Sync state for list toggles (Part 6 list updates)
+  const handleListFollowToggle = (userId, newStatus) => {
+    if (!profileUser) return;
+
+    // Sync followers list item isFollowing flag inside local state
+    const updatedFollowers = (profileUser.followers || []).map((u) => {
+      if (u._id?.toString() === userId.toString()) {
+        return { ...u, isFollowing: newStatus };
+      }
+      return u;
+    });
+
+    // Sync following list item isFollowing flag inside local state
+    const updatedFollowing = (profileUser.following || []).map((u) => {
+      if (u._id?.toString() === userId.toString()) {
+        return { ...u, isFollowing: newStatus };
+      }
+      return u;
+    });
+
+    setProfileUser({
+      ...profileUser,
+      followers: updatedFollowers,
+      following: updatedFollowing,
+    });
+  };
+
+  const getMutualText = () => {
+    if (mutualCount === 0) return "";
+    const names = mutualFollowers.map((f) => f.name);
+    if (mutualCount === 1) return `Followed by ${names[0]}`;
+    if (mutualCount === 2) return `Followed by ${names[0]} and ${names[1]}`;
+    return `Followed by ${names[0]}, ${names[1]} and ${mutualCount - 2} other${
+      mutualCount - 2 > 1 ? "s" : ""
+    }`;
+  };
+
   const renderSkeletons = () => (
     <div className="space-y-4">
       {[1, 2].map((n) => (
@@ -142,7 +298,7 @@ const Profile = () => {
 
   if (loadingUser) {
     return (
-      <div className="min-h-screen bg-dark flex items-center justify-center">
+      <div className="h-[60vh] flex items-center justify-center">
         <Spinner size="lg" color="#6C63FF" />
       </div>
     );
@@ -151,8 +307,8 @@ const Profile = () => {
   if (!profileUser) return null;
 
   return (
-    <div className="min-h-screen bg-dark text-white pb-20">
-      <div className="max-w-2xl mx-auto pt-4 px-4">
+    <div className="w-full pb-12">
+      <div className="w-full max-w-2xl mx-auto pt-4 px-4">
         {/* Profile Card Shell */}
         <div className="bg-[#1E1E2E] rounded-2xl border border-[#3A3A5E] overflow-hidden mb-6 shadow-xl relative animate-fadeIn">
           {/* Cover Image */}
@@ -200,7 +356,7 @@ const Profile = () => {
                 <p className="text-[#A0A0C0] text-sm">@{profileUser.username}</p>
               </div>
 
-              {/* Edit or Follow Button */}
+              {/* Edit or Follow Button (Hover effect unfollow - Part 6) */}
               {isOwnProfile ? (
                 <button
                   onClick={handleEditProfileClick}
@@ -210,10 +366,29 @@ const Profile = () => {
                 </button>
               ) : (
                 <button
-                  onClick={handleFollowClick}
-                  className="bg-primary hover:bg-primary/90 text-white text-xs md:text-sm font-bold px-5 py-2 rounded-xl transition shadow-lg"
+                  onClick={handleFollowToggle}
+                  disabled={followLoading}
+                  onMouseEnter={() => setIsFollowHovered(true)}
+                  onMouseLeave={() => setIsFollowHovered(false)}
+                  className={`text-xs md:text-sm font-semibold px-5 py-2.5 rounded-xl transition duration-200 shadow-md flex items-center justify-center min-w-[100px] ${
+                    isFollowing
+                      ? isFollowHovered
+                        ? "bg-transparent border border-red-500/50 text-red-400"
+                        : "bg-transparent border border-[#3A3A5E] text-white hover:border-[#3A3A5E]"
+                      : "bg-gradient-to-r from-primary to-accent text-white hover:opacity-95"
+                  }`}
                 >
-                  Follow
+                  {followLoading ? (
+                    <Spinner size="sm" color="#ffffff" />
+                  ) : isFollowing ? (
+                    isFollowHovered ? (
+                      "Unfollow"
+                    ) : (
+                      "Following"
+                    )
+                  ) : (
+                    "Follow"
+                  )}
                 </button>
               )}
             </div>
@@ -283,21 +458,54 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Stats Row */}
+            {/* Mutual Followers Display (Part 6) */}
+            {mutualCount > 0 && (
+              <div className="flex items-center gap-2 mt-4 select-none animate-fadeIn border-t border-[#3A3A5E]/30 pt-3">
+                <div className="flex items-center">
+                  {mutualFollowers.map((follower, index) => (
+                    <div
+                      key={follower._id}
+                      style={{ zIndex: 3 - index }}
+                      className={index > 0 ? "-ml-2.5" : ""}
+                    >
+                      <Avatar
+                        user={follower}
+                        size="sm"
+                        className="w-6 h-6 ring-2 ring-[#1E1E2E]"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-[#A0A0C0] text-xs font-medium leading-none">
+                  {getMutualText()}
+                </span>
+              </div>
+            )}
+
+            {/* Stats Row (Clickable tabs toggle - Part 6) */}
             <div className="flex gap-6 mt-6 border-t border-[#3A3A5E] pt-4 select-none">
-              <div className="flex items-center gap-1 text-sm">
+              <div
+                className="flex items-center gap-1 text-sm cursor-pointer hover:opacity-90"
+                onClick={() => setActiveTab("posts")}
+              >
                 <span className="font-bold text-white">{totalPostsCount}</span>
                 <span className="text-[#A0A0C0]">Posts</span>
               </div>
-              <div className="flex items-center gap-1 text-sm">
+              <div
+                className="flex items-center gap-1 text-sm cursor-pointer hover:opacity-90"
+                onClick={() => setActiveTab("followers")}
+              >
                 <span className="font-bold text-white">
-                  {profileUser.followersCount || profileUser.followers?.length || 0}
+                  {profileUser.followers?.length || 0}
                 </span>
                 <span className="text-[#A0A0C0]">Followers</span>
               </div>
-              <div className="flex items-center gap-1 text-sm">
+              <div
+                className="flex items-center gap-1 text-sm cursor-pointer hover:opacity-90"
+                onClick={() => setActiveTab("following")}
+              >
                 <span className="font-bold text-white">
-                  {profileUser.followingCount || profileUser.following?.length || 0}
+                  {profileUser.following?.length || 0}
                 </span>
                 <span className="text-[#A0A0C0]">Following</span>
               </div>
@@ -305,21 +513,41 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-[#3A3A5E] mb-6 select-none">
+        {/* Tab Navigation (Four Tabs - Part 6) */}
+        <div className="flex border-b border-[#3A3A5E] mb-6 overflow-x-auto select-none no-scrollbar">
           <button
             onClick={() => setActiveTab("posts")}
-            className={`py-3 px-6 text-sm font-semibold border-b-2 transition duration-200 ${
+            className={`py-3 px-5 text-sm font-semibold border-b-2 transition duration-200 whitespace-nowrap ${
               activeTab === "posts"
                 ? "border-primary text-primary"
                 : "border-transparent text-[#A0A0C0] hover:text-white"
             }`}
           >
-            Posts
+            Posts ({totalPostsCount})
+          </button>
+          <button
+            onClick={() => setActiveTab("followers")}
+            className={`py-3 px-5 text-sm font-semibold border-b-2 transition duration-200 whitespace-nowrap ${
+              activeTab === "followers"
+                ? "border-primary text-primary"
+                : "border-transparent text-[#A0A0C0] hover:text-white"
+            }`}
+          >
+            Followers ({profileUser.followers?.length || 0})
+          </button>
+          <button
+            onClick={() => setActiveTab("following")}
+            className={`py-3 px-5 text-sm font-semibold border-b-2 transition duration-200 whitespace-nowrap ${
+              activeTab === "following"
+                ? "border-primary text-primary"
+                : "border-transparent text-[#A0A0C0] hover:text-white"
+            }`}
+          >
+            Following ({profileUser.following?.length || 0})
           </button>
           <button
             onClick={() => setActiveTab("likes")}
-            className={`py-3 px-6 text-sm font-semibold border-b-2 transition duration-200 ${
+            className={`py-3 px-5 text-sm font-semibold border-b-2 transition duration-200 whitespace-nowrap ${
               activeTab === "likes"
                 ? "border-primary text-primary"
                 : "border-transparent text-[#A0A0C0] hover:text-white"
@@ -330,11 +558,11 @@ const Profile = () => {
         </div>
 
         {/* Tab Content */}
-        {activeTab === "posts" ? (
+        {activeTab === "posts" && (
           loadingPosts ? (
             renderSkeletons()
           ) : posts.length === 0 ? (
-            /* Empty State */
+            /* Empty State Posts */
             <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center flex flex-col items-center justify-center py-12 animate-fadeIn">
               <span className="text-4xl mb-3 select-none">📝</span>
               <h3 className="text-white text-base font-bold mb-1">No posts yet</h3>
@@ -382,9 +610,49 @@ const Profile = () => {
               )}
             </div>
           )
-        ) : (
-          /* Placeholder Likes Tab */
-          <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-12 text-[#A0A0C0] text-sm font-medium">
+        )}
+
+        {/* Followers List Content (Part 6) */}
+        {activeTab === "followers" && (
+          (profileUser.followers || []).length === 0 ? (
+            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-12 text-[#A0A0C0] text-sm animate-fadeIn">
+              No followers yet.
+            </div>
+          ) : (
+            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-4 divide-y divide-[#3A3A5E]/20 space-y-1 animate-fadeIn">
+              {profileUser.followers.map((follower) => (
+                <UserListItem
+                  key={follower._id}
+                  user={follower}
+                  onFollowToggle={handleListFollowToggle}
+                />
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Following List Content (Part 6) */}
+        {activeTab === "following" && (
+          (profileUser.following || []).length === 0 ? (
+            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-12 text-[#A0A0C0] text-sm animate-fadeIn">
+              Not following anyone yet.
+            </div>
+          ) : (
+            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-4 divide-y divide-[#3A3A5E]/20 space-y-1 animate-fadeIn">
+              {profileUser.following.map((followedUser) => (
+                <UserListItem
+                  key={followedUser._id}
+                  user={followedUser}
+                  onFollowToggle={handleListFollowToggle}
+                />
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Placeholder Likes Tab */}
+        {activeTab === "likes" && (
+          <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-12 text-[#A0A0C0] text-sm font-medium animate-fadeIn">
             Likes tab details will be wired in Part 5!
           </div>
         )}

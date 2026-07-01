@@ -88,7 +88,7 @@ const CreatePost = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark text-white px-4 py-8">
+    <div className="w-full px-4 py-6">
       <div className="max-w-xl mx-auto bg-[#1E1E2E] rounded-2xl p-6 border border-[#3A3A5E] shadow-xl relative animate-fadeIn">
         {/* Header */}
         <div className="flex items-center gap-3 border-b border-[#3A3A5E] pb-4 mb-4">

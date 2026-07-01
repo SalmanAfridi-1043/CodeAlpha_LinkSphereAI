@@ -24,6 +24,23 @@ const io = new Server(server, {
   },
 });
 
+app.set("io", io);
+
+const onlineUsers = new Map(); // userId -> socketId
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) return next(new Error("Authentication required"));
+  try {
+    const jwt = require("jsonwebtoken");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch (err) {
+    next(new Error("Invalid token"));
+  }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
@@ -44,11 +61,23 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/likes", likeRoutes);
 app.use("/api/follow", followRoutes);
 
+const notificationRoutes = require("./routes/notificationRoutes");
+app.use("/api/notifications", notificationRoutes);
+
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  onlineUsers.set(socket.userId, socket.id);
+  socket.join(socket.userId);
+  io.emit("user_online", { userId: socket.userId });
+  console.log(`User connected: ${socket.userId}`);
+
+  socket.on("get_online_users", () => {
+    socket.emit("online_users_list", Array.from(onlineUsers.keys()));
+  });
 
   socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
+    onlineUsers.delete(socket.userId);
+    io.emit("user_offline", { userId: socket.userId });
+    console.log(`User disconnected: ${socket.userId}`);
   });
 });
 
@@ -63,4 +92,4 @@ connectDB().then(() => {
   });
 });
 
-module.exports = { io };
+module.exports = { app, server, io, onlineUsers };

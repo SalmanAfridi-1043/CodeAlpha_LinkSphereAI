@@ -220,7 +220,10 @@ const deletePost = asyncHandler(async (req, res) => {
 // @access  Private
 const getUserProfile = asyncHandler(async (req, res) => {
   const username = req.params.username.toLowerCase();
-  const user = await User.findOne({ username }).select("-password");
+  const user = await User.findOne({ username })
+    .select("-password")
+    .populate("followers", "_id name username avatar isVerified followers following")
+    .populate("following", "_id name username avatar isVerified followers following");
 
   if (!user) {
     res.status(404);

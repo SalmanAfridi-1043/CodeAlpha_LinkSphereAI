@@ -31,3 +31,36 @@ body {
 .login-card {
   animation: borderGlow 3s ease-in-out infinite;
 }
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #0F0F1A;
+}
+::-webkit-scrollbar-thumb {
+  background: #3A3A5E;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6C63FF;
+}
+
+/* Page Transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+

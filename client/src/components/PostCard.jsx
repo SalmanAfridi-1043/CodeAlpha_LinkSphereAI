@@ -6,10 +6,16 @@ import useAuth from "../hooks/useAuth";
 import formatDate from "../utils/formatDate";
 import Avatar from "./Avatar";
 import Spinner from "./Spinner";
+import useSocket from "../hooks/useSocket";
 
 const PostCard = ({ post, onDelete, onUpdate }) => {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
+  const { socket: _socket } = useSocket();
+
+  useEffect(() => {
+    // Real-time per-post like/comment sync via socket rooms is a possible future enhancement — for now, the notification system handles cross-user awareness, and optimistic updates handle the acting user's own UI
+  }, []);
 
   // Post Card core states
   const [showMenu, setShowMenu] = useState(false);
@@ -262,7 +268,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={handleUserClick}>
-          <Avatar user={post.user} size="md" />
+          <Avatar user={post.user} size="md" userId={post.user?._id || post.user} showOnlineStatus={true} />
           <div>
             <div className="flex items-center gap-1">
               <span className="text-white font-semibold hover:underline">
@@ -530,7 +536,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
               {comments.map((comment) => (
                 <div key={comment._id} className="flex gap-2.5 items-start mt-2 group/comment relative">
-                  <Avatar user={comment.user} size="sm" className="w-8 h-8" />
+                  <Avatar user={comment.user} size="sm" className="w-8 h-8" userId={comment.user?._id || comment.user} showOnlineStatus={true} />
                   <div className="flex-1">
                     {editingCommentId === comment._id ? (
                       <div className="space-y-2 bg-[#2A2A3E] rounded-2xl p-3 border border-[#3A3A5E]">

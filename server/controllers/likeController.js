@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Like = require("../models/Like");
 const Post = require("../models/Post");
+const createNotification = require("../utils/notificationHelper");
 
 // @desc    Toggle like status on a post
 // @route   POST /api/likes/:postId
@@ -34,7 +35,13 @@ const toggleLike = asyncHandler(async (req, res) => {
     await post.save();
 
     if (post.user.toString() !== req.user._id.toString()) {
-      // Notification creation will be added in Part 9
+      const io = req.app.get("io");
+      await createNotification(io, {
+        recipientId: post.user,
+        senderId: req.user._id,
+        type: "like",
+        postId: post._id,
+      });
     }
 
     return res.status(200).json({

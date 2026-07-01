@@ -115,8 +115,8 @@ const Home = () => {
   );
 
   return (
-    <div className="min-h-screen bg-dark text-white pb-20">
-      <div className="max-w-xl mx-auto pt-4 px-4">
+    <div className="w-full pb-12">
+      <div className="w-full max-w-xl mx-auto px-4 pt-4">
         {/* Quick create post bar */}
         <div
           onClick={() => navigate("/create")}

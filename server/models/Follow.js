@@ -1,5 +1,2 @@
-const mongoose = require("mongoose");
-
-// Schema fields to be added in Part 2: follower, following, createdAt
-
+// Not used — follow relationships are stored in User.followers and User.following arrays for performance
 module.exports = {};

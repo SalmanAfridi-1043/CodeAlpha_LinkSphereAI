@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const Comment = require("../models/Comment");
 const Post = require("../models/Post");
+const createNotification = require("../utils/notificationHelper");
 
 // @desc    Add a comment to a post
 // @route   POST /api/comments/:postId
@@ -41,7 +42,13 @@ const addComment = asyncHandler(async (req, res) => {
   );
 
   if (post.user.toString() !== req.user._id.toString()) {
-    // Notification creation will be added in Part 9
+    const io = req.app.get("io");
+    await createNotification(io, {
+      recipientId: post.user,
+      senderId: req.user._id,
+      type: "comment",
+      postId: post._id,
+    });
   }
 
   return res.status(201).json({
