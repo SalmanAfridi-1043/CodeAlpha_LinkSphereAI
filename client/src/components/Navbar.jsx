@@ -1,14 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import { useNavigate, Link, useLocation, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuth from "../hooks/useAuth";
 import useSocket from "../hooks/useSocket";
 import Avatar from "./Avatar";
 import NotificationDropdown from "./NotificationDropdown";
+import { ThemeContext } from "../context/ThemeContext";
 
 const Navbar = () => {
   const { user: currentUser, logout } = useAuth();
   const { unreadCount } = useSocket();
+  const { theme, toggleTheme } = useContext(ThemeContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -134,6 +136,15 @@ const Navbar = () => {
               onClose={() => setShowNotifications(false)}
             />
           </div>
+
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            className="text-[#A0A0C0] hover:text-white transition duration-200 focus:outline-none flex items-center p-1.5 rounded-lg hover:bg-[#2A2A3E]/60 text-xl"
+          >
+            {theme === "dark" ? "🌙" : "☀️"}
+          </button>
 
           {/* User Settings Dropdown */}
           <div className="relative" ref={userDropdownRef}>

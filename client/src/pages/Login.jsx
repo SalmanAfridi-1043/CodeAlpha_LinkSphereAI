@@ -5,12 +5,15 @@ import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import Spinner from "../components/Spinner";
 
+import usePageTitle from "../hooks/usePageTitle";
+
 const inputClass =
   "w-full bg-[#2A2A3E] border border-[#3A3A5E] text-white rounded-xl px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors";
 
 const labelClass = "block text-[#A0A0C0] text-sm mb-1";
 
 const Login = () => {
+  usePageTitle("Sign In");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

@@ -5,9 +5,12 @@ import api from "../api/axios";
 import Spinner from "../components/Spinner";
 import PostCard from "../components/PostCard";
 import UserListItem from "../components/UserListItem";
+import usePageTitle from "../hooks/usePageTitle";
+import UserItemSkeleton from "../components/skeletons/UserItemSkeleton";
 
 const Explore = () => {
   const [searchParams] = useSearchParams();
+  usePageTitle("Explore");
   const [posts, setPosts] = useState([]);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -192,8 +195,10 @@ const Explore = () => {
                 <Spinner size="md" color="#6C63FF" />
               </div>
             ) : searchResults.length === 0 ? (
-              <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-12 text-[#A0A0C0] text-sm">
-                No users found matching "{searchQuery}"
+              <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-16 animate-fadeIn select-none">
+                <span className="text-4xl mb-3 block select-none">🔍</span>
+                <p className="text-white font-semibold mb-1">No users found for '{searchQuery}'</p>
+                <p className="text-[#A0A0C0] text-xs">Try searching for another name or username</p>
               </div>
             ) : (
               <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-4 divide-y divide-[#3A3A5E]/20 space-y-1">
@@ -211,7 +216,19 @@ const Explore = () => {
           /* Explore Dashboard View */
           <div className="space-y-6 animate-fadeIn">
             {/* Suggested users panel */}
-            {suggestedUsers.length > 0 && (
+            {loading ? (
+              <div>
+                <h2 className="text-white font-semibold text-base mb-3 flex items-center gap-2 select-none">
+                  <span>Suggested for you</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                </h2>
+                <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-3 divide-y divide-[#3A3A5E]/10 space-y-1 shadow-lg">
+                  {[1, 2, 3].map((n) => (
+                    <UserItemSkeleton key={n} />
+                  ))}
+                </div>
+              </div>
+            ) : suggestedUsers.length > 0 ? (
               <div>
                 <h2 className="text-white font-semibold text-base mb-3 flex items-center gap-2 select-none">
                   <span>Suggested for you</span>
@@ -227,7 +244,7 @@ const Explore = () => {
                   ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Explore posts list */}
             <div>
@@ -238,8 +255,10 @@ const Explore = () => {
               {loading ? (
                 renderSkeletons()
               ) : posts.length === 0 ? (
-                <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-12 text-[#A0A0C0] text-sm">
-                  No posts published yet.
+                <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-16 animate-fadeIn select-none">
+                  <span className="text-4xl mb-3 block select-none">🔭</span>
+                  <p className="text-white font-semibold mb-1">Nothing to explore yet</p>
+                  <p className="text-[#A0A0C0] text-xs">Check back later for new posts from the community</p>
                 </div>
               ) : (
                 <div className="space-y-6">

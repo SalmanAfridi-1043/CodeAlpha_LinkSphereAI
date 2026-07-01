@@ -7,6 +7,8 @@ import Spinner from "../components/Spinner";
 import Avatar from "../components/Avatar";
 import PostCard from "../components/PostCard";
 import UserListItem from "../components/UserListItem";
+import usePageTitle from "../hooks/usePageTitle";
+import ProfileSkeleton from "../components/skeletons/ProfileSkeleton";
 
 const Profile = () => {
   const { username } = useParams();
@@ -14,6 +16,7 @@ const Profile = () => {
   const navigate = useNavigate();
 
   const [profileUser, setProfileUser] = useState(null);
+  usePageTitle(profileUser ? profileUser.name : "Profile");
   const [posts, setPosts] = useState([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingPosts, setLoadingPosts] = useState(true);
@@ -297,11 +300,7 @@ const Profile = () => {
   );
 
   if (loadingUser) {
-    return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Spinner size="lg" color="#6C63FF" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   if (!profileUser) return null;
@@ -563,20 +562,22 @@ const Profile = () => {
             renderSkeletons()
           ) : posts.length === 0 ? (
             /* Empty State Posts */
-            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center flex flex-col items-center justify-center py-12 animate-fadeIn">
+            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center flex flex-col items-center justify-center py-16 animate-fadeIn select-none">
               <span className="text-4xl mb-3 select-none">📝</span>
-              <h3 className="text-white text-base font-bold mb-1">No posts yet</h3>
+              <h3 className="text-white text-base font-bold mb-1">
+                {isOwnProfile ? "No posts yet" : `${profileUser.name} hasn't posted yet`}
+              </h3>
               <p className="text-[#A0A0C0] text-xs max-w-xs mb-4">
                 {isOwnProfile
-                  ? "Share your thoughts or upload your first photo!"
-                  : `@${profileUser.username} hasn't posted anything yet.`}
+                  ? "Share your thoughts or upload your first photo with the community!"
+                  : `@${profileUser.username} hasn't published any posts.`}
               </p>
               {isOwnProfile && (
                 <button
                   onClick={() => navigate("/create")}
                   className="bg-primary hover:bg-primary/95 text-white font-semibold text-xs px-4 py-2 rounded-xl transition shadow"
                 >
-                  Share your first post!
+                  Create your first post
                 </button>
               )}
             </div>
@@ -615,8 +616,10 @@ const Profile = () => {
         {/* Followers List Content (Part 6) */}
         {activeTab === "followers" && (
           (profileUser.followers || []).length === 0 ? (
-            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-12 text-[#A0A0C0] text-sm animate-fadeIn">
-              No followers yet.
+            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-16 flex flex-col items-center justify-center animate-fadeIn select-none">
+              <span className="text-4xl mb-3">👥</span>
+              <p className="text-white font-semibold mb-1">No followers yet</p>
+              <p className="text-[#A0A0C0] text-xs">When users follow this account, they will appear here.</p>
             </div>
           ) : (
             <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-4 divide-y divide-[#3A3A5E]/20 space-y-1 animate-fadeIn">
@@ -634,8 +637,10 @@ const Profile = () => {
         {/* Following List Content (Part 6) */}
         {activeTab === "following" && (
           (profileUser.following || []).length === 0 ? (
-            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-12 text-[#A0A0C0] text-sm animate-fadeIn">
-              Not following anyone yet.
+            <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-16 flex flex-col items-center justify-center animate-fadeIn select-none">
+              <span className="text-4xl mb-3">👣</span>
+              <p className="text-white font-semibold mb-1">Not following anyone yet</p>
+              <p className="text-[#A0A0C0] text-xs">When this user follows accounts, they will be listed here.</p>
             </div>
           ) : (
             <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-4 divide-y divide-[#3A3A5E]/20 space-y-1 animate-fadeIn">

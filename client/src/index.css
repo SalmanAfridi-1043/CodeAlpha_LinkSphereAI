@@ -8,13 +8,111 @@
   --accent: #FF6584;
   --dark: #0F0F1A;
   --light: #F5F5FF;
+
+  /* Default Light Mode Variables */
+  --bg: #F5F5FF;
+  --card: #FFFFFF;
+  --border: #E0E0F0;
+  --muted: #6B6B8A;
+  --text: #0F0F1A;
+}
+
+.dark {
+  /* Dark Mode Variables */
+  --bg: #0F0F1A;
+  --card: #1E1E2E;
+  --border: #3A3A5E;
+  --muted: #A0A0C0;
+  --text: #F5F5FF;
 }
 
 body {
-  background-color: #0F0F1A;
-  color: #F5F5FF;
+  background-color: var(--bg);
+  color: var(--text);
   font-family: 'Inter', sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
+
+/* Light mode overrides for arbitrary Tailwind colors */
+html:not(.dark) .bg-\[\#0F0F1A\] {
+  background-color: var(--bg) !important;
+}
+html:not(.dark) .bg-\[\#1E1E2E\] {
+  background-color: var(--card) !important;
+}
+html:not(.dark) .bg-\[\#2A2A3E\] {
+  background-color: #E2E2F0 !important;
+}
+html:not(.dark) .bg-\[\#2A2A3E\]\/50 {
+  background-color: rgba(226, 226, 240, 0.5) !important;
+}
+html:not(.dark) .bg-\[\#2A2A3E\]\/30 {
+  background-color: rgba(226, 226, 240, 0.3) !important;
+}
+html:not(.dark) .bg-\[\#2A2A3E\]\/75 {
+  background-color: rgba(226, 226, 240, 0.75) !important;
+}
+html:not(.dark) .bg-dark {
+  background-color: var(--bg) !important;
+}
+html:not(.dark) .bg-dark\/95 {
+  background-color: rgba(245, 245, 255, 0.95) !important;
+}
+html:not(.dark) .bg-\[\#0F0F1A\]\/95 {
+  background-color: rgba(245, 245, 255, 0.95) !important;
+}
+html:not(.dark) .bg-\[\#1E1E2E\]\/80 {
+  background-color: rgba(255, 255, 255, 0.8) !important;
+}
+html:not(.dark) .bg-\[\#1E1E2E\]\/60 {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+}
+html:not(.dark) .bg-\#1E1E2E {
+  background-color: var(--card) !important;
+}
+html:not(.dark) .border-\[\#3A3A5E\] {
+  border-color: var(--border) !important;
+}
+html:not(.dark) .border-\[\#3A3A5E\]\/40 {
+  border-color: rgba(224, 224, 240, 0.4) !important;
+}
+html:not(.dark) .border-\[\#3A3A5E\]\/60 {
+  border-color: rgba(224, 224, 240, 0.6) !important;
+}
+html:not(.dark) .border-\[\#3A3A5E\]\/30 {
+  border-color: rgba(224, 224, 240, 0.3) !important;
+}
+html:not(.dark) .text-\[\#A0A0C0\] {
+  color: var(--muted) !important;
+}
+html:not(.dark) .text-\[\#A0A0C0\]\/75 {
+  color: rgba(107, 107, 138, 0.75) !important;
+}
+html:not(.dark) .text-\[\#A0A0C0\]\/50 {
+  color: rgba(107, 107, 138, 0.5) !important;
+}
+html:not(.dark) .text-\[\#A0A0C0\]\/40 {
+  color: rgba(107, 107, 138, 0.4) !important;
+}
+html:not(.dark) .text-\[\#F5F5FF\] {
+  color: var(--text) !important;
+}
+html:not(.dark) .text-white {
+  color: var(--text) !important;
+}
+html:not(.dark) .hover\:text-white:hover {
+  color: #0F0F1A !important;
+}
+html:not(.dark) .hover\:bg-\[\#2A2A3E\]:hover {
+  background-color: #E2E2F0 !important;
+}
+html:not(.dark) .hover\:bg-\[\#2A2A3E\]\/50:hover {
+  background-color: rgba(222, 222, 240, 0.5) !important;
+}
+html:not(.dark) .hover\:border-primary\/50:hover {
+  border-color: rgba(108, 99, 255, 0.5) !important;
+}
+
 
 @keyframes borderGlow {
   0% {

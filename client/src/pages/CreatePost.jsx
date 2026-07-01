@@ -5,10 +5,12 @@ import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import Spinner from "../components/Spinner";
 import Avatar from "../components/Avatar";
+import usePageTitle from "../hooks/usePageTitle";
 
 const CreatePost = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  usePageTitle("Create Post");
 
   const [content, setContent] = useState("");
   const [imageFile, setImageFile] = useState(null);

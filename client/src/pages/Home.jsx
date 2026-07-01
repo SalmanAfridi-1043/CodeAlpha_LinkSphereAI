@@ -6,10 +6,13 @@ import useAuth from "../hooks/useAuth";
 import Spinner from "../components/Spinner";
 import Avatar from "../components/Avatar";
 import PostCard from "../components/PostCard";
+import usePageTitle from "../hooks/usePageTitle";
+import PostCardSkeleton from "../components/skeletons/PostCardSkeleton";
 
 const Home = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  usePageTitle("Home");
 
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,24 +95,7 @@ const Home = () => {
   const renderSkeletons = () => (
     <div className="space-y-4">
       {[1, 2, 3].map((n) => (
-        <div
-          key={n}
-          className="bg-[#1E1E2E] rounded-2xl p-5 mb-4 border border-[#3A3A5E] animate-pulse"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-[#2A2A3E] rounded-full" />
-            <div className="flex-1 space-y-2">
-              <div className="h-4 bg-[#2A2A3E] rounded w-1/4" />
-              <div className="h-3 bg-[#2A2A3E] rounded w-1/6" />
-            </div>
-          </div>
-          <div className="mt-4 space-y-2">
-            <div className="h-4 bg-[#2A2A3E] rounded w-full" />
-            <div className="h-4 bg-[#2A2A3E] rounded w-5/6" />
-            <div className="h-4 bg-[#2A2A3E] rounded w-2/3" />
-          </div>
-          <div className="h-48 bg-[#2A2A3E] rounded-xl mt-4" />
-        </div>
+        <PostCardSkeleton key={n} />
       ))}
     </div>
   );

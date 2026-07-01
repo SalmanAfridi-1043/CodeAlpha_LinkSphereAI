@@ -17,11 +17,24 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 const app = express();
 const server = http.createServer(app);
 
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    credentials: true,
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.CLIENT_URL_PROD,
+].filter(Boolean);
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
   },
+  credentials: true,
+};
+
+const io = new Server(server, {
+  cors: corsOptions,
 });
 
 app.set("io", io);
@@ -43,12 +56,7 @@ io.use((socket, next) => {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 
 app.get("/", (req, res) => {
   res.json({ message: "LinkSphereAI API is running..." });
@@ -93,3 +101,14 @@ connectDB().then(() => {
 });
 
 module.exports = { app, server, io, onlineUsers };
+
+// RENDER DEPLOYMENT:
+// 1. Go to render.com → New Web Service
+// 2. Connect your GitHub repo
+// 3. Root directory: server
+// 4. Build command: npm install
+// 5. Start command: node server.js
+// 6. Add all .env variables in Render dashboard:
+//    MONGO_URI, JWT_SECRET, PORT, CLIENT_URL, CLIENT_URL_PROD, CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+// 7. Free tier is fine for internship submission
+

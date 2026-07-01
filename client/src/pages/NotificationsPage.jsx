@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import useSocket from "../hooks/useSocket";
 import Avatar from "../components/Avatar";
 import formatDate from "../utils/formatDate";
+import usePageTitle from "../hooks/usePageTitle";
 
 const NotificationsPage = () => {
+  usePageTitle("Notifications");
   const {
     notifications,
     unreadCount,
@@ -57,11 +59,11 @@ const NotificationsPage = () => {
       {/* Notifications List Container */}
       <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl overflow-hidden divide-y divide-[#3A3A5E]/40 shadow-xl">
         {notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center select-none animate-fadeIn">
             <span className="text-5xl mb-4 select-none">🔔</span>
-            <h2 className="text-white text-lg font-semibold mb-1">No notifications yet</h2>
+            <h2 className="text-white text-lg font-semibold mb-1">You're all caught up!</h2>
             <p className="text-xs text-[#A0A0C0] max-w-xs leading-relaxed">
-              We will notify you when someone interacts with your posts, comments, or follows you.
+              Notifications will appear here when someone interacts with your posts, comments, or follows you.
             </p>
           </div>
         ) : (

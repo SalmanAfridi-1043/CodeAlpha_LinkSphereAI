@@ -1,100 +1,40 @@
-# LinkSphereAI
+# LinkSphereAI 🌐
 
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
-![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)
-![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socketdotio&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+A modern full-stack social media platform with real-time notifications, a theme toggle system, and a sleek responsive UI layout shell.
 
-A modern full-stack social media platform with real-time features, AI-powered interactions, and a sleek dark UI.
+## 🚀 Live Demo
+- **Live Link:** [https://linksphereai-frontend.vercel.app](https://linksphereai-frontend.vercel.app)
+- **Backend API:** [https://linksphereai.onrender.com](https://linksphereai.onrender.com)
 
-## Features
+---
 
-- **User Authentication** — Secure JWT-based registration and login
-- **Social Feed** — Create, view, and interact with posts
-- **Real-Time Updates** — Live notifications and interactions via Socket.io
-- **Image Uploads** — Cloudinary-powered media storage
-- **Follow System** — Connect with other users
-- **Comments & Likes** — Engage with content in real time
-- **Explore** — Discover new users and trending content
-- **Dark UI** — Modern, responsive design with Tailwind CSS
+## ✨ Features
+- 🔐 **Secure Authentication** — JWT token-based register, login, and sessions.
+- 🌙 **Persistent Theme System** — Instant dark/light mode toggle saved to localStorage.
+- 📱 **Fluid Responsive Layout** — Dynamic Navbar, collapsible icon-only tablet Sidebar, RightPanel statistics, and mobile bottom navigation.
+- 🟢 **Real-Time Presence** — Active online indicators, notification badges, and messaging streams via Socket.io.
+- 📝 **Interactive Media Feed** — Cloudinary image upload, comments flow, infinite feed scroll, and user followers streams.
+- 🛡️ **Defensive UX & Skeletons** — Custom ErrorBoundary fallbacks and detailed loading skeletons for profile card components.
 
-## Tech Stack
+---
 
-| Layer      | Technology                          |
-| ---------- | ----------------------------------- |
-| Frontend   | React, Vite, Tailwind CSS           |
-| Backend    | Node.js, Express.js                 |
-| Database   | MongoDB, Mongoose                   |
-| Auth       | JSON Web Tokens (JWT)               |
-| Real-Time  | Socket.io                           |
-| Media      | Cloudinary                          |
-| Deployment | Vercel (frontend), Render (backend) |
+## 🛠 Tech Stack
 
-## Getting Started
+| Layer | Technology |
+|---|---|
+| **Frontend** | React.js + Vite + Tailwind CSS + Axios |
+| **Backend** | Node.js + Express.js |
+| **Database** | MongoDB + Mongoose |
+| **Real-Time** | Socket.io |
+| **Media** | Cloudinary |
+| **Security** | JWT + bcryptjs |
+| **Deployment** | Vercel (Frontend) + Render (Backend) |
 
-### Prerequisites
+---
 
-- Node.js v18+
-- MongoDB Atlas account (or local MongoDB)
-- Cloudinary account
+## 📁 Project Structure
 
-### Installation
-
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/yourusername/CodeAlpha_LinkSphereAI.git
-   cd CodeAlpha_LinkSphereAI
-   ```
-
-2. **Set up the backend**
-
-   ```bash
-   cd server
-   npm install
-   # Configure server/.env (see Environment Variables)
-   npm run dev
-   ```
-
-3. **Set up the frontend**
-
-   ```bash
-   cd client
-   npm install
-   # Configure client/.env (see Environment Variables)
-   npm run dev
-   ```
-
-4. Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-## Environment Variables
-
-### Server (`server/.env`)
-
-| Variable                 | Description                    |
-| ------------------------ | ------------------------------ |
-| `PORT`                   | Server port (default: 5000)    |
-| `MONGO_URI`              | MongoDB connection string      |
-| `JWT_SECRET`             | Secret key for JWT signing     |
-| `JWT_EXPIRE`             | Token expiration (e.g. `30d`)  |
-| `CLOUDINARY_CLOUD_NAME`  | Cloudinary cloud name          |
-| `CLOUDINARY_API_KEY`     | Cloudinary API key             |
-| `CLOUDINARY_API_SECRET`  | Cloudinary API secret          |
-| `NODE_ENV`               | `development` or `production`  |
-| `CLIENT_URL`             | Frontend URL for CORS          |
-
-### Client (`client/.env`)
-
-| Variable           | Description              |
-| ------------------ | ------------------------ |
-| `VITE_API_URL`     | Backend API base URL     |
-| `VITE_SOCKET_URL`  | Socket.io server URL     |
-
-## Folder Structure
-
-```
+```text
 CodeAlpha_LinkSphereAI/
 ├── server/                 # Express.js backend
 │   ├── config/             # DB & Cloudinary config
@@ -103,33 +43,95 @@ CodeAlpha_LinkSphereAI/
 │   ├── models/             # Mongoose schemas
 │   ├── routes/             # API routes
 │   ├── utils/              # Helper utilities
+│   ├── .renderignore       # Render ignore configs
 │   └── server.js           # Entry point
 ├── client/                 # React frontend
-│   ├── public/
+│   ├── public/             # Static public assets
+│   ├── vercel.json         # Vercel SPA redirects
+│   ├── .env.production     # Production endpoints
 │   └── src/
-│       ├── api/            # Axios instance
+│       ├── api/            # Axios setup
 │       ├── components/     # Reusable UI components
+│       │   └── skeletons/  # Loading skeleton displays
 │       ├── context/        # React context providers
 │       ├── hooks/          # Custom hooks
-│       ├── pages/          # Route pages
-│       └── utils/          # Helper functions
+│       ├── pages/          # Private and public route pages
+│       ├── utils/          # Formatting helpers
+│       ├── App.jsx         # App router config
+│       ├── index.css       # Global styles and overrides
+│       └── main.jsx        # Main DOM entrypoint
 └── README.md
 ```
 
-## Screenshots
+---
 
-> Screenshots will be added as the UI is built in later parts.
+## ⚙️ Setup Instructions
 
-<!-- ![Home Feed](./docs/screenshots/home.png) -->
-<!-- ![Profile Page](./docs/screenshots/profile.png) -->
+### 1. Backend Server Setup
+```bash
+cd server
+npm install
+```
+Configure a `.env` file in the `server/` directory:
+```env
+PORT=5000
+MONGO_URI=your-mongodb-atlas-connection-string
+JWT_SECRET=your-jwt-signing-secret
+JWT_EXPIRE=30d
+CLOUDINARY_CLOUD_NAME=your-cloudinary-name
+CLOUDINARY_API_KEY=your-cloudinary-key
+CLOUDINARY_API_SECRET=your-cloudinary-secret
+CLIENT_URL=http://localhost:5173
+CLIENT_URL_PROD=https://linksphereai-frontend.vercel.app
+```
+Start development backend:
+```bash
+npm run dev
+```
 
-## Live Demo
+### 2. Frontend Client Setup
+```bash
+cd client
+npm install
+```
+Configure a `.env` file in the `client/` directory for local development:
+```env
+VITE_API_URL=http://localhost:5000/api
+VITE_SOCKET_URL=http://localhost:5000
+```
+Start development client:
+```bash
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-> Live demo links will be added after deployment.
+---
 
-- **Frontend:** _Coming soon — Vercel_
-- **Backend API:** _Coming soon — Render_
+## 🔑 Environment Variables References
 
-## Author
+### Server Configurations (`server/.env`)
+- `PORT`: Execution port (default `5000`).
+- `MONGO_URI`: Remote MongoDB Cluster cloud connection URI.
+- `JWT_SECRET`: Signature encryption seed.
+- `CLIENT_URL`: Local CORS development frontend url.
+- `CLIENT_URL_PROD`: Vercel production frontend CORS registration URL.
 
-Built as part of the **CodeAlpha LinkSphereAI** full-stack social media project.
+### Client Configurations (`client/.env.production`)
+- `VITE_API_URL`: Root API endpoints route base pointer.
+- `VITE_SOCKET_URL`: Production socket cluster listener server.
+
+---
+
+## 📸 Screenshots
+
+### Dark Mode (Default)
+![Dark UI Mockup](https://raw.githubusercontent.com/SalmanAfridi-1043/CodeAlpha_LinkSphereAI/main/docs/screenshots/dark_mode_mock.png)
+
+### Light Mode Toggle
+![Light UI Mockup](https://raw.githubusercontent.com/SalmanAfridi-1043/CodeAlpha_LinkSphereAI/main/docs/screenshots/light_mode_mock.png)
+
+---
+
+## 👨💻 Author
+Built by **Salman Afridi** for CodeAlpha Internship.
+- GitHub: [SalmanAfridi-1043](https://github.com/SalmanAfridi-1043)
