@@ -1,28 +1,45 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import api from "../api/axios";
-import UserListItem from "./UserListItem";
 import Spinner from "./Spinner";
+import Avatar from "./Avatar";
+import useSuggestions from "../hooks/useSuggestions";
 
 const RightPanel = () => {
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { suggestions, loading, setSuggestions, refresh } = useSuggestions();
+  const [followingIds, setFollowingIds] = useState(new Set());
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      try {
-        const { data } = await api.get("/users/suggestions");
-        if (data.success) {
-          setSuggestions(data.users.slice(0, 5));
-        }
-      } catch (err) {
-        console.error("Failed to load suggestions in RightPanel:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSuggestions();
-  }, []);
+  const handleFollow = async (userId) => {
+    setFollowingIds((prev) => new Set([...prev, userId]));
+    try {
+      await api.post(`/follow/${userId}`);
+      toast.success("Followed successfully!");
+    } catch (err) {
+      setFollowingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+      toast.error("Failed to follow");
+    }
+  };
+
+  const renderSkeletons = () => (
+    <div className="space-y-1">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="flex items-center gap-3 p-2.5 animate-pulse">
+          <div className="w-8 h-8 rounded-full bg-[var(--bg-hover)]" style={{ backgroundColor: "var(--surface-3)" }} />
+          <div className="flex-1">
+            <div className="h-3 w-24 rounded mb-1.5" style={{ backgroundColor: "var(--surface-3)" }} />
+            <div className="h-2 w-16 rounded" style={{ backgroundColor: "var(--surface-3)" }} />
+          </div>
+          <div className="h-7 w-16 rounded-full" style={{ backgroundColor: "var(--surface-3)" }} />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <aside
@@ -53,21 +70,82 @@ const RightPanel = () => {
           }}
         >
           {loading ? (
-            <div className="flex justify-center py-6">
-              <Spinner size="sm" color="var(--primary)" />
-            </div>
+            renderSkeletons()
           ) : suggestions.length === 0 ? (
-            <div className="text-center py-6 text-xs font-medium" style={{ color: "var(--muted)" }}>
-              No suggestions found
+            <div className="text-center py-6">
+              <p className="text-3xl mb-2">👥</p>
+              <p className="text-[var(--text-muted)] text-[13px]" style={{ color: "var(--muted)" }}>
+                Follow more people to get better suggestions
+              </p>
             </div>
           ) : (
-            suggestions.map((user) => (
-              <UserListItem
-                key={user._id}
-                user={user}
-                size="sm"
-              />
-            ))
+            <>
+              {suggestions.map((user) => (
+                <div
+                  key={user._id}
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--surface-2)] transition cursor-pointer group"
+                >
+                  {/* Clickable Avatar → goes to profile */}
+                  <div onClick={() => navigate(`/profile/${user.username}`)}>
+                    <Avatar
+                      user={user}
+                      size="sm"
+                      showRing={false}
+                    />
+                  </div>
+
+                  {/* Info column → clickable → profile */}
+                  <div
+                    className="flex-1 min-w-0"
+                    onClick={() => navigate(`/profile/${user.username}`)}
+                  >
+                    {/* Name row */}
+                    <div className="flex items-center gap-1">
+                      <p className="text-[var(--text)] text-[13px] font-semibold truncate hover:underline" style={{ color: "var(--text)" }}>
+                        {user.name}
+                      </p>
+                      {user.isVerified && (
+                        <span className="text-[#6C63FF] text-[10px]">✓</span>
+                      )}
+                    </div>
+
+                    {/* Username */}
+                    <p className="text-[var(--muted)] text-[11px] truncate" style={{ color: "var(--muted)" }}>
+                      @{user.username}
+                    </p>
+
+                    {/* Mutual followers hint */}
+                    {user.mutualFollowersCount > 0 && (
+                      <p className="text-[#6C63FF] text-[10px] mt-0.5" style={{ color: "var(--primary)" }}>
+                        {user.mutualFollowersCount} mutual follower
+                        {user.mutualFollowersCount > 1 ? "s" : ""}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Follow button */}
+                  <button
+                    onClick={() => handleFollow(user._id)}
+                    disabled={followingIds.has(user._id)}
+                    className={`text-[12px] px-3 py-1.5 rounded-full font-medium transition flex-shrink-0 ${
+                      followingIds.has(user._id)
+                        ? "bg-[var(--surface-3)] text-[var(--muted)] cursor-default"
+                        : "bg-gradient-to-r from-[#6C63FF] to-[#FF6584] text-white hover:shadow-[0_0_12px_#6C63FF44]"
+                    }`}
+                  >
+                    {followingIds.has(user._id) ? "Following ✓" : "Follow"}
+                  </button>
+                </div>
+              ))}
+
+              <button
+                onClick={refresh}
+                className="text-[#6C63FF] text-[12px] font-medium hover:underline mt-1 w-full text-center py-1 bg-transparent border-none cursor-pointer"
+                style={{ color: "var(--primary)" }}
+              >
+                Show more →
+              </button>
+            </>
           )}
         </div>
       </div>

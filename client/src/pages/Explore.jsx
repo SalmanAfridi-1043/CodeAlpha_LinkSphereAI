@@ -1,20 +1,24 @@
 // VERIFIED: pages/Explore.jsx — no issues found
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../api/axios";
 import Spinner from "../components/Spinner";
 import PostCard from "../components/PostCard";
 import UserListItem from "../components/UserListItem";
+import Avatar from "../components/Avatar";
 import usePageTitle from "../hooks/usePageTitle";
 import UserItemSkeleton from "../components/skeletons/UserItemSkeleton";
+import useSuggestions from "../hooks/useSuggestions";
 
 const Explore = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   usePageTitle("Explore");
   const [posts, setPosts] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
-  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const { suggestions: suggestedUsers, loading: loadingSuggestions } = useSuggestions();
+  const [followingIds, setFollowingIds] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -70,22 +74,15 @@ const Explore = () => {
     performSearch();
   }, [debouncedQuery]);
 
-  // Fetch initial posts and suggestions on mount
+  // Fetch initial posts on mount
   const fetchInitialData = useCallback(async () => {
     setLoading(true);
     pageRef.current = 1;
     try {
-      const [exploreData, suggestionsData] = await Promise.all([
-        api.get("/posts/explore?page=1&limit=12"),
-        api.get("/users/suggestions"),
-      ]);
-
-      if (exploreData.data.success) {
-        setPosts(exploreData.data.posts);
-        setHasMore(exploreData.data.hasMore);
-      }
-      if (suggestionsData.data.success) {
-        setSuggestedUsers(suggestionsData.data.users);
+      const { data } = await api.get("/posts/explore?page=1&limit=12");
+      if (data.success) {
+        setPosts(data.posts);
+        setHasMore(data.hasMore);
       }
     } catch (err) {
       console.error(err);
@@ -139,10 +136,18 @@ const Explore = () => {
     [loading, loadingMore, hasMore, searchQuery]
   );
 
-  const handleSuggestionFollowToggle = (userId, newStatus) => {
-    // If follow state changes, remove the user from suggestions list dynamically
-    if (newStatus) {
-      setSuggestedUsers((prev) => prev.filter((u) => u._id !== userId));
+  const handleFollow = async (userId) => {
+    setFollowingIds((prev) => new Set([...prev, userId]));
+    try {
+      await api.post(`/follow/${userId}`);
+      toast.success("Followed successfully!");
+    } catch (err) {
+      setFollowingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+      toast.error("Failed to follow");
     }
   };
 
@@ -221,7 +226,7 @@ const Explore = () => {
           /* Explore Dashboard View */
           <div className="space-y-6 animate-fadeIn">
             {/* Suggested users panel */}
-            {loading ? (
+            {loadingSuggestions ? (
               <div>
                 <h2 className="text-white font-semibold text-base mb-3 flex items-center gap-2 select-none">
                   <span>Suggested for you</span>
@@ -229,7 +234,14 @@ const Explore = () => {
                 </h2>
                 <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-3 divide-y divide-[#3A3A5E]/10 space-y-1 shadow-lg">
                   {[1, 2, 3].map((n) => (
-                    <UserItemSkeleton key={n} />
+                    <div key={n} className="flex items-center gap-3 p-2.5 animate-pulse">
+                      <div className="w-8 h-8 rounded-full bg-[var(--surface-3)]" />
+                      <div className="flex-1">
+                        <div className="h-3 w-24 rounded mb-1.5 bg-[var(--surface-3)]" />
+                        <div className="h-2 w-16 rounded bg-[var(--surface-3)]" />
+                      </div>
+                      <div className="h-7 w-16 rounded-full bg-[var(--surface-3)]" />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -239,18 +251,73 @@ const Explore = () => {
                   <span>Suggested for you</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                 </h2>
-                {/* Horizontal scroll on mobile, cols on desktop */}
-                <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto pb-3 md:pb-0 scroll-smooth no-scrollbar select-none">
-                  {suggestedUsers.map((user) => (
-                    <div key={user._id} className="min-w-[170px] md:min-w-0 flex-shrink-0">
-                      <UserListItem
-                        user={user}
-                        onFollowToggle={handleSuggestionFollowToggle}
-                        layout="card"
-                        showFollowButton={true}
-                      />
-                    </div>
-                  ))}
+                <div
+                  className="rounded-2xl p-3 space-y-1"
+                  style={{
+                    background: "var(--surface)",
+                    border:     "1px solid var(--border)",
+                    boxShadow:  "var(--shadow-md)",
+                  }}
+                >
+                  <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto pb-3 md:pb-0 scroll-smooth no-scrollbar select-none">
+                    {suggestedUsers.map((user) => (
+                      <div
+                        key={user._id}
+                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--surface-2)] transition cursor-pointer group min-w-[200px] md:min-w-0 flex-shrink-0"
+                      >
+                        {/* Clickable Avatar → goes to profile */}
+                        <div onClick={() => navigate(`/profile/${user.username}`)}>
+                          <Avatar
+                            user={user}
+                            size="sm"
+                            showRing={false}
+                          />
+                        </div>
+
+                        {/* Info column → clickable → profile */}
+                        <div
+                          className="flex-1 min-w-0"
+                          onClick={() => navigate(`/profile/${user.username}`)}
+                        >
+                          {/* Name row */}
+                          <div className="flex items-center gap-1">
+                            <p className="text-[var(--text)] text-[13px] font-semibold truncate hover:underline" style={{ color: "var(--text)" }}>
+                              {user.name}
+                            </p>
+                            {user.isVerified && (
+                              <span className="text-[#6C63FF] text-[10px]">✓</span>
+                            )}
+                          </div>
+
+                          {/* Username */}
+                          <p className="text-[var(--muted)] text-[11px] truncate" style={{ color: "var(--muted)" }}>
+                            @{user.username}
+                          </p>
+
+                          {/* Mutual followers hint */}
+                          {user.mutualFollowersCount > 0 && (
+                            <p className="text-[#6C63FF] text-[10px] mt-0.5" style={{ color: "var(--primary)" }}>
+                              {user.mutualFollowersCount} mutual follower
+                              {user.mutualFollowersCount > 1 ? "s" : ""}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Follow button */}
+                        <button
+                          onClick={() => handleFollow(user._id)}
+                          disabled={followingIds.has(user._id)}
+                          className={`text-[12px] px-3 py-1.5 rounded-full font-medium transition flex-shrink-0 ${
+                            followingIds.has(user._id)
+                              ? "bg-[var(--surface-3)] text-[var(--muted)] cursor-default"
+                              : "bg-gradient-to-r from-[#6C63FF] to-[#FF6584] text-white hover:shadow-[0_0_12px_#6C63FF44]"
+                          }`}
+                        >
+                          {followingIds.has(user._id) ? "Following ✓" : "Follow"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             ) : null}

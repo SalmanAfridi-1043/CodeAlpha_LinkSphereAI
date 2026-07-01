@@ -39,26 +39,174 @@ const searchUsers = asyncHandler(async (req, res) => {
 // @desc    Get suggested users to follow
 // @route   GET /api/users/suggestions
 // @access  Private
+// @desc    Get suggested users to follow
+// @route   GET /api/users/suggestions
+// @access  Private
 const getSuggestedUsers = asyncHandler(async (req, res) => {
-  const currentUser = await User.findById(req.user._id).select("following");
-  const excludedIds = [...(currentUser.following || []), req.user._id];
+  const me = await User.findById(req.user._id).select("following bio website location");
+  const followingList = me.following || [];
 
-  const suggestions = await User.find({
-    _id: { $nin: excludedIds },
+  // Step 2 — Get users followed by people I follow (friends of friends)
+  const friendsOfFriends = await User.find({
+    _id: {
+      $nin: [...followingList, req.user._id],
+    },
+    followers: { $in: followingList },
   })
-    .select("_id name username avatar isVerified followers following")
+    .select("_id name username avatar bio isVerified followers website location")
+    .limit(10);
+
+  // Step 3 — Get popular users I don't follow
+  const popularUsers = await User.find({
+    _id: {
+      $nin: [
+        ...followingList,
+        req.user._id,
+        ...friendsOfFriends.map((u) => u._id),
+      ],
+    },
+  })
+    .select("_id name username avatar bio isVerified followers website location")
+    .sort({ followers: -1 })
     .limit(5);
 
-  const suggestionsWithFollowStatus = suggestions.map((u) => {
-    const userObj = u.toObject();
-    userObj.isFollowing = false;
-    return userObj;
+  // Step 4 — Combine + score each user
+  const allCandidates = [...friendsOfFriends, ...popularUsers];
+  const scored = allCandidates.map((user) => {
+    let score = 0;
+
+    // Friend of friend = high relevance
+    if (
+      followingList.some((id) =>
+        user.followers.some((f) => f.toString() === id.toString())
+      )
+    ) {
+      score += 10;
+    }
+
+    // More followers = more credibility
+    score += Math.min(user.followers.length, 5);
+
+    // Same location = local connection
+    if (
+      me.location &&
+      user.location &&
+      me.location.toLowerCase() === user.location.toLowerCase()
+    ) {
+      score += 3;
+    }
+
+    // Verified = trustworthy
+    if (user.isVerified) {
+      score += 2;
+    }
+
+    return { ...user.toObject(), score };
   });
 
-  return res.status(200).json({
-    success: true,
-    users: suggestionsWithFollowStatus,
+  // Step 5 — Sort by score, take top 6
+  const suggestions = scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
+    .map((u) => ({
+      ...u,
+      isFollowing: false,
+      mutualFollowersCount: followingList.filter((id) =>
+        u.followers.some((f) => f.toString() === id.toString())
+      ).length,
+    }));
+
+  return res.status(200).json({ success: true, users: suggestions });
+});
+
+// @desc    Refresh suggested users to follow
+// @route   GET /api/users/suggestions/refresh
+// @access  Private
+const refreshSuggestedUsers = asyncHandler(async (req, res) => {
+  const me = await User.findById(req.user._id).select("following bio website location");
+  const followingList = me.following || [];
+
+  // Step 2 — Get users followed by people I follow (friends of friends)
+  const friendsOfFriends = await User.find({
+    _id: {
+      $nin: [...followingList, req.user._id],
+    },
+    followers: { $in: followingList },
+  })
+    .select("_id name username avatar bio isVerified followers website location")
+    .limit(15); // get slightly more for refreshes
+
+  // Step 3 — Get popular users I don't follow
+  const popularUsers = await User.find({
+    _id: {
+      $nin: [
+        ...followingList,
+        req.user._id,
+        ...friendsOfFriends.map((u) => u._id),
+      ],
+    },
+  })
+    .select("_id name username avatar bio isVerified followers website location")
+    .sort({ followers: -1 })
+    .limit(10); // get slightly more for refreshes
+
+  // Step 4 — Combine + score each user
+  const allCandidates = [...friendsOfFriends, ...popularUsers];
+  const scored = allCandidates.map((user) => {
+    let score = 0;
+
+    // Friend of friend = high relevance
+    if (
+      followingList.some((id) =>
+        user.followers.some((f) => f.toString() === id.toString())
+      )
+    ) {
+      score += 10;
+    }
+
+    // More followers = more credibility
+    score += Math.min(user.followers.length, 5);
+
+    // Same location = local connection
+    if (
+      me.location &&
+      user.location &&
+      me.location.toLowerCase() === user.location.toLowerCase()
+    ) {
+      score += 3;
+    }
+
+    // Verified = trustworthy
+    if (user.isVerified) {
+      score += 2;
+    }
+
+    return { ...user.toObject(), score };
   });
+
+  // Sort by score
+  let suggestions = scored.sort((a, b) => b.score - a.score);
+
+  // Rotate suggestion list using seed parameter
+  const seed = parseInt(req.query.seed) || 0;
+  if (seed > 0 && suggestions.length > 6) {
+    const offset = (seed * 6) % suggestions.length;
+    suggestions = [
+      ...suggestions.slice(offset),
+      ...suggestions.slice(0, offset),
+    ];
+  }
+
+  // Take top 6
+  const finalSuggestions = suggestions.slice(0, 6).map((u) => ({
+    ...u,
+    isFollowing: false,
+    mutualFollowersCount: followingList.filter((id) =>
+      u.followers.some((f) => f.toString() === id.toString())
+    ).length,
+  }));
+
+  return res.status(200).json({ success: true, users: finalSuggestions });
 });
 
 // DEBUGGED: Added updateUserProfile, getFollowers, and getFollowing controller functions to support profile changes and complete follow network populating.
@@ -148,6 +296,7 @@ const getFollowing = asyncHandler(async (req, res) => {
 module.exports = {
   searchUsers,
   getSuggestedUsers,
+  refreshSuggestedUsers,
   updateUserProfile,
   getFollowers,
   getFollowing,
