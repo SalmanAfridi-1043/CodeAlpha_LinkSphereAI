@@ -37,10 +37,11 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
     }
   };
 
+// UI UPGRADED: NotificationDropdown
   return (
-    <div className="absolute top-12 right-0 w-80 max-h-96 overflow-y-auto bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl shadow-2xl z-50 animate-fadeIn no-scrollbar flex flex-col select-none">
+    <div className="absolute top-12 right-0 w-80 max-h-96 overflow-y-auto glass rounded-2xl shadow-2xl z-50 animate-fadeIn no-scrollbar flex flex-col select-none">
       {/* Dropdown Header */}
-      <div className="flex items-center justify-between p-3.5 border-b border-[#3A3A5E]/60">
+      <div className="flex items-center justify-between p-3.5 border-b border-[#3A3A5E]/40">
         <span className="text-sm font-semibold text-white">Notifications</span>
         {unreadCount > 0 && (
           <button
@@ -56,14 +57,14 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
       </div>
 
       {/* Notifications List */}
-      <div className="divide-y divide-[#3A3A5E]/40 overflow-y-auto max-h-[320px] no-scrollbar">
+      <div className="divide-y divide-[#3A3A5E]/30 overflow-y-auto max-h-[320px] no-scrollbar">
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
             <span className="text-3xl mb-2 select-none">🔔</span>
             <p className="text-xs text-[#A0A0C0] font-medium">No notifications yet</p>
           </div>
         ) : (
-          notifications.map((notification) => {
+          notifications.map((notification, index) => {
             const sender = notification.sender || {};
             const senderName = sender.name || "Someone";
             
@@ -80,34 +81,50 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
               <div
                 key={notification._id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`flex items-start gap-3 p-3 hover:bg-[#2A2A3E] cursor-pointer transition duration-150 relative ${
-                  !notification.isRead
-                    ? "border-l-2 border-primary bg-[#6C63FF]/5"
-                    : ""
-                }`}
+                className={`flex items-start justify-between gap-3 p-3 hover:bg-[#2A2A3E]/40 cursor-pointer transition duration-150 relative animate-[slideIn_0.3s_ease-out]`}
+                style={{ animationDelay: `${index * 0.04}s`, animationFillMode: "both" }}
               >
-                {/* Sender Avatar */}
-                <div className="flex-shrink-0">
-                  <Avatar user={sender} size="sm" showOnlineStatus={false} />
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  {/* Sender Avatar */}
+                  <div className="flex-shrink-0 relative">
+                    <Avatar user={sender} size="sm" showOnlineStatus={false} />
+                    {!notification.isRead && (
+                      <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-[#12121F]" />
+                    )}
+                  </div>
+
+                  {/* Content text */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-[#F5F5FF] leading-snug break-words">
+                      <span className="font-semibold text-white hover:underline">
+                        {senderName}
+                      </span>{" "}
+                      {actionText}
+                    </p>
+                    <span className="text-[10px] text-[#A0A0C0] block mt-1">
+                      {formatDate(notification.createdAt)}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Content text */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-[#F5F5FF] leading-snug break-words">
-                    <span className="font-semibold text-white hover:underline">
-                      {senderName}
-                    </span>{" "}
-                    {actionText}
-                  </p>
-                  <span className="text-[10px] text-[#A0A0C0] block mt-1">
-                    {formatDate(notification.createdAt)}
-                  </span>
+                {/* Type Icon Indicator Circle */}
+                <div className="flex-shrink-0 self-center ml-2">
+                  {notification.type === "like" && (
+                    <div className="w-7 h-7 rounded-full bg-[#FF6584]/15 flex items-center justify-center border border-[#FF6584]/30 shadow-[0_0_10px_rgba(255,101,132,0.15)]">
+                      <span className="text-xs">❤️</span>
+                    </div>
+                  )}
+                  {notification.type === "comment" && (
+                    <div className="w-7 h-7 rounded-full bg-[#6C63FF]/15 flex items-center justify-center border border-[#6C63FF]/30 shadow-[0_0_10px_rgba(108,99,255,0.15)]">
+                      <span className="text-xs">💬</span>
+                    </div>
+                  )}
+                  {notification.type === "follow" && (
+                    <div className="w-7 h-7 rounded-full bg-[#00D9A3]/15 flex items-center justify-center border border-[#00D9A3]/30 shadow-[0_0_10px_rgba(0,217,163,0.15)]">
+                      <span className="text-xs">👤</span>
+                    </div>
+                  )}
                 </div>
-
-                {/* Unread circle indicator */}
-                {!notification.isRead && (
-                  <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 self-center" />
-                )}
               </div>
             );
           })

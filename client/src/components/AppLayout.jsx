@@ -36,14 +36,15 @@ const AppLayout = () => {
         <RightPanel />
       </div>
 
+      {/* UI UPGRADED: AppLayout */}
       {/* Mobile Bottom Navigation Bar: Visible only on mobile (<md) */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#1E1E2E]/90 backdrop-blur-lg border-t border-[#3A3A5E]/80 h-14 z-40 flex md:hidden items-center justify-around px-6">
+      <nav className="fixed bottom-0 left-0 right-0 glass h-14 z-40 flex md:hidden items-center justify-around px-6">
         <NavLink
           to="/"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${
+            `flex flex-col items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
               isActive
-                ? "bg-primary/20 text-primary scale-110 shadow-lg shadow-primary/10"
+                ? "bg-gradient-to-br from-[#6C63FF]/20 to-[#FF6584]/05 text-primary scale-110 shadow-[0_0_15px_rgba(108,99,255,0.25)]"
                 : "text-[#A0A0C0] hover:text-white"
             }`
           }
@@ -54,9 +55,9 @@ const AppLayout = () => {
         <NavLink
           to="/explore"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${
+            `flex flex-col items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
               isActive
-                ? "bg-primary/20 text-primary scale-110 shadow-lg shadow-primary/10"
+                ? "bg-gradient-to-br from-[#6C63FF]/20 to-[#FF6584]/05 text-primary scale-110 shadow-[0_0_15px_rgba(108,99,255,0.25)]"
                 : "text-[#A0A0C0] hover:text-white"
             }`
           }
@@ -67,9 +68,9 @@ const AppLayout = () => {
         <NavLink
           to="/create"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${
+            `flex flex-col items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
               isActive
-                ? "bg-primary/20 text-primary scale-110 shadow-lg shadow-primary/10"
+                ? "bg-gradient-to-br from-[#6C63FF]/20 to-[#FF6584]/05 text-primary scale-110 shadow-[0_0_15px_rgba(108,99,255,0.25)]"
                 : "text-[#A0A0C0] hover:text-white"
             }`
           }
@@ -80,9 +81,9 @@ const AppLayout = () => {
         <NavLink
           to={`/profile/${user.username}`}
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-12 h-12 rounded-full transition-all duration-300 ${
+            `flex flex-col items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
               isActive
-                ? "bg-primary/20 text-primary scale-110 shadow-lg shadow-primary/10"
+                ? "bg-gradient-to-br from-[#6C63FF]/20 to-[#FF6584]/05 text-primary scale-110 shadow-[0_0_15px_rgba(108,99,255,0.25)]"
                 : "text-[#A0A0C0] hover:text-white"
             }`
           }

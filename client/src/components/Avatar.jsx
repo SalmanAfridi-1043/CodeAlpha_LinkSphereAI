@@ -48,16 +48,26 @@ const Avatar = ({
   const dimensionClasses = currentSizeClass.split(" ").slice(0, 2).join(" ");
   const textStyleClasses = currentSizeClass.split(" ").slice(2).join(" ");
 
+// UI UPGRADED: Avatar
   return (
     <div
       className={`relative inline-flex flex-shrink-0 select-none ${dimensionClasses} ${className}`}
     >
+      {/* Conic rotating gradient ring */}
+      {showRing && (
+        <div className="absolute inset-0 rounded-full p-[2px] bg-gradient-to-tr from-primary via-accent to-primary animate-[ringRotate_4s_linear_infinite]" />
+      )}
+
       <div
-        className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary to-accent text-white ${
-          showRing ? "p-[2px]" : ""
+        className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center text-white z-10 ${
+          showRing ? "p-[2px]" : "bg-gradient-to-br from-primary to-accent"
         }`}
       >
-        <div className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-[#1E1E2E] ${showRing ? "" : "bg-transparent"}`}>
+        <div className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center ${
+          avatarUrl 
+            ? "bg-[#1E1E2E]" 
+            : "bg-gradient-to-br from-primary to-accent text-white font-bold"
+        }`}>
           {avatarUrl ? (
             <img
               src={avatarUrl}
@@ -78,7 +88,7 @@ const Avatar = ({
 
       {isOnline && (
         <span
-          className={`absolute bottom-0 right-0 bg-green-500 border-2 border-[#1E1E2E] rounded-full ${
+          className={`absolute bottom-0 right-0 bg-green-500 border-2 border-[#1E1E2E] rounded-full z-20 animate-[onlinePulse_2s_infinite] ${
             size === "lg" || size === "xl" ? "w-3.5 h-3.5" : "w-2.5 h-2.5"
           }`}
           title="Online"
@@ -87,7 +97,7 @@ const Avatar = ({
 
       {user?.isVerified && (
         <span
-          className={`absolute top-0 right-0 bg-primary text-white rounded-full flex items-center justify-center border border-[#1E1E2E] ${
+          className={`absolute top-0 right-0 bg-primary text-white rounded-full flex items-center justify-center border border-[#1E1E2E] z-20 ${
             size === "lg" || size === "xl" ? "w-4 h-4 text-[8px]" : "w-3 h-3 text-[6px]"
           }`}
           title="Verified"

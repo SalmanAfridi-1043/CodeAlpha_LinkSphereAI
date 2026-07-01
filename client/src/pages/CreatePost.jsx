@@ -18,6 +18,7 @@ const CreatePost = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -48,6 +49,34 @@ const CreatePost = () => {
     setImagePreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image must be smaller than 5MB");
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setError(null);
     }
   };
 
@@ -90,12 +119,13 @@ const CreatePost = () => {
     }
   };
 
+  // UI UPGRADED: CreatePost
   return (
     <div className="w-full px-4 py-6">
-      <div className="max-w-xl mx-auto bg-[#1E1E2E] rounded-2xl p-6 border border-[#3A3A5E] shadow-xl relative animate-fadeIn">
+      <div className="max-w-xl mx-auto glass rounded-[20px] p-6 border border-transparent shadow-[0_0_40px_rgba(108,99,255,0.15)] relative animate-fadeIn select-none">
         {/* Header */}
-        <div className="flex items-center gap-3 border-b border-[#3A3A5E] pb-4 mb-4">
-          <Avatar user={user} size="sm" />
+        <div className="flex items-center gap-3 border-b border-[#3A3A5E]/40 pb-4 mb-4">
+          <Avatar user={user} size="sm" showRing={true} />
           <div>
             <h1 className="text-lg font-bold text-white">Create Post</h1>
             <p className="text-xs text-[#A0A0C0]">Share something with the LinkSphere</p>
@@ -117,9 +147,12 @@ const CreatePost = () => {
               onChange={(e) => setContent(e.target.value)}
               maxLength={500}
               disabled={loading}
-              className="w-full min-h-[140px] bg-[#2A2A3E] border border-[#3A3A5E] text-white rounded-xl p-4 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40 transition resize-none text-[15px]"
+              rows={Math.max(4, content.split("\n").length)}
+              className="w-full bg-[#2A2A3E]/30 border border-[#3A3A5E]/60 text-white rounded-xl p-4 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/45 transition-all duration-200 resize-none text-[15px]"
             />
-            <div className="absolute bottom-3 right-4 text-[#A0A0C0] text-xs select-none">
+            <div className={`absolute bottom-3 right-4 text-xs select-none font-semibold transition-colors duration-200 ${
+              content.length > 400 ? "text-accent animate-pulse" : "text-[#A0A0C0]"
+            }`}>
               {content.length}/500
             </div>
           </div>
@@ -136,7 +169,7 @@ const CreatePost = () => {
 
           {/* Image Selection / Preview Area */}
           {imagePreview ? (
-            <div className="relative rounded-xl overflow-hidden bg-[#0F0F1A] border border-[#3A3A5E]">
+            <div className="relative rounded-[16px] overflow-hidden bg-[#0F0F1A] border border-[#3A3A5E]/60">
               <img
                 src={imagePreview}
                 alt="Upload preview"
@@ -146,7 +179,7 @@ const CreatePost = () => {
                 type="button"
                 onClick={handleRemoveImage}
                 disabled={loading}
-                className="absolute top-2 right-2 bg-black/60 hover:bg-black text-[#A0A0C0] hover:text-white p-1.5 rounded-full border border-[#3A3A5E] transition"
+                className="absolute top-2 right-2 bg-black/60 hover:bg-black text-[#A0A0C0] hover:text-white p-1.5 rounded-full border border-[#3A3A5E]/60 transition"
                 aria-label="Remove image"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -157,9 +190,16 @@ const CreatePost = () => {
           ) : (
             <div
               onClick={() => !loading && fileInputRef.current?.click()}
-              className="border-2 border-dashed border-[#3A3A5E] hover:border-primary/50 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-[#2A2A3E]/30 transition group"
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-[16px] p-6 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group ${
+                isDragOver 
+                  ? "border-primary bg-[#6C63FF]/10 shadow-[0_0_15px_rgba(108,99,255,0.15)]" 
+                  : "border-[#3D3D60] hover:border-primary/50 hover:bg-[#6C63FF]/05"
+              }`}
             >
-              <div className="bg-[#2A2A3E] group-hover:bg-[#3A3A5E] text-[#A0A0C0] group-hover:text-white p-3 rounded-full transition mb-2">
+              <div className="bg-[#2A2A3E]/60 group-hover:bg-[#3A3A5E]/60 text-[#A0A0C0] group-hover:text-white p-3 rounded-full transition mb-2">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
@@ -177,12 +217,12 @@ const CreatePost = () => {
           )}
 
           {/* Buttons Row */}
-          <div className="flex items-center justify-between border-t border-[#3A3A5E] pt-4">
+          <div className="flex items-center justify-between border-t border-[#3A3A5E]/40 pt-4">
             <button
               type="button"
               onClick={() => !loading && fileInputRef.current?.click()}
               disabled={loading}
-              className="flex items-center gap-2 text-[#A0A0C0] hover:text-white bg-[#2A2A3E]/50 hover:bg-[#2A2A3E] px-4 py-2 rounded-xl border border-[#3A3A5E] transition text-sm font-medium"
+              className="flex items-center gap-2 text-[#A0A0C0] hover:text-white bg-[#2A2A3E]/30 hover:bg-[#2A2A3E]/60 px-4 py-2 rounded-xl border border-[#3A3A5E]/60 transition text-sm font-medium"
               aria-label="Upload Image Button"
             >
               <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -201,17 +241,20 @@ const CreatePost = () => {
                 type="button"
                 onClick={() => navigate("/")}
                 disabled={loading}
-                className="bg-[#2A2A3E] hover:bg-[#3A3A5E] text-[#A0A0C0] hover:text-white px-5 py-2 rounded-xl transition text-sm font-semibold border border-[#3A3A5E]"
+                className="bg-[#2A2A3E]/30 hover:bg-[#2A2A3E]/60 text-[#A0A0C0] hover:text-white px-5 py-2 rounded-xl transition text-sm font-semibold border border-[#3A3A5E]/60"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || (!content.trim() && !imageFile)}
-                className="bg-gradient-to-r from-primary to-accent hover:opacity-95 text-white px-6 py-2 rounded-xl transition text-sm font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className={`px-6 py-2 rounded-xl transition-all duration-200 text-sm font-bold shadow-lg flex items-center justify-center min-h-[38px] active:scale-[0.97] ${
+                  loading || (!content.trim() && !imageFile)
+                    ? "bg-[#222236] border border-[#2A2A40] text-[#5A5A7A] cursor-not-allowed shadow-none"
+                    : "btn-primary text-white hover:opacity-95 cursor-pointer"
+                }`}
               >
-                {loading && <Spinner size="sm" color="#ffffff" />}
-                {loading ? "Posting..." : "Post"}
+                {loading ? <Spinner size="sm" color="#ffffff" /> : "Post"}
               </button>
             </div>
           </div>

@@ -9,9 +9,9 @@ import Spinner from "../components/Spinner";
 import usePageTitle from "../hooks/usePageTitle";
 
 const inputClass =
-  "w-full bg-[#2A2A3E] border border-[#3A3A5E] text-white rounded-xl px-4 py-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors";
+  "w-full glass input-field text-white rounded-xl px-4 py-3 focus:outline-none transition-all duration-300";
 
-const labelClass = "block text-[#A0A0C0] text-sm mb-1";
+const labelClass = "block text-[#A0A0C0] text-xs font-semibold uppercase tracking-wider mb-2 select-none";
 
 const Register = () => {
   usePageTitle("Join LinkSphereAI");
@@ -29,15 +29,26 @@ const Register = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const validate = () => {
+  const validateForm = () => {
     const errors = {};
-
-    if (!name || !username || !email || !password || !confirmPassword) {
-      setError("Please fill in all fields");
-      return false;
+    if (!name.trim()) errors.name = "Name is required";
+    if (!username.trim()) {
+      errors.username = "Username is required";
+    } else if (username.length < 3) {
+      errors.username = "Username must be at least 3 characters";
+    } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      errors.username = "Username can only contain alphanumeric characters and underscores";
     }
 
-    if (password.length < 6) {
+    if (!email) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      errors.email = "Email is invalid";
+    }
+
+    if (!password) {
+      errors.password = "Password is required";
+    } else if (password.length < 6) {
       errors.password = "Password must be at least 6 characters";
     }
 
@@ -46,33 +57,29 @@ const Register = () => {
     }
 
     setFieldErrors(errors);
-    setError("");
-
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validate()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     setError("");
 
     try {
       const { data } = await api.post("/auth/register", {
-        name,
-        username,
-        email,
+        name: name.trim(),
+        username: username.trim().toLowerCase(),
+        email: email.trim().toLowerCase(),
         password,
       });
 
       localStorage.setItem("linksphereai_token", data.token);
       localStorage.setItem("linksphereai_user", JSON.stringify(data.user));
       login(data.user, data.token);
-      toast.success("Account created successfully!");
+      toast.success("Welcome to LinkSphereAI! 🎉");
       navigate("/");
     } catch (err) {
       const message =
@@ -84,17 +91,29 @@ const Register = () => {
     }
   };
 
+  // UI UPGRADED: Register
   return (
-    <div className="min-h-screen bg-dark flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md rounded-2xl bg-secondary shadow-2xl p-8">
+    <div 
+      className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, #0A0A14, #12121F, #1A0A2E, #0A0A14)",
+        backgroundSize: "400% 400%",
+        animation: "bgShift 8s ease infinite"
+      }}
+    >
+      {/* Floating particles glow effect */}
+      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#6C63FF]/10 rounded-full blur-3xl animate-pulse pointer-events-none z-0" />
+      <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#FF6584]/10 rounded-full blur-3xl animate-pulse pointer-events-none z-0" style={{ animationDelay: "2s" }} />
+
+      <div className="glass w-full max-w-md rounded-[20px] shadow-[0_0_60px_rgba(108,99,255,0.15),0_0_120px_rgba(108,99,255,0.07)] p-8 border border-white/10 z-10 select-none">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold">
-            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            <span className="gradient-text">
               LinkSphere
             </span>
             <span className="text-accent">AI</span>
           </h1>
-          <p className="text-[#A0A0C0] mt-2">
+          <p className="text-[#A0A0C0] mt-2 text-sm font-medium">
             Join the next generation social network
           </p>
         </div>
@@ -112,6 +131,9 @@ const Register = () => {
               onChange={(e) => setName(e.target.value)}
               className={inputClass}
             />
+            {fieldErrors.name && (
+              <p className="text-red-400 text-xs mt-1 font-semibold">{fieldErrors.name}</p>
+            )}
           </div>
 
           <div>
@@ -131,6 +153,9 @@ const Register = () => {
                 className={`${inputClass} pl-8`}
               />
             </div>
+            {fieldErrors.username && (
+              <p className="text-red-400 text-xs mt-1 font-semibold">{fieldErrors.username}</p>
+            )}
           </div>
 
           <div>
@@ -145,6 +170,9 @@ const Register = () => {
               onChange={(e) => setEmail(e.target.value)}
               className={inputClass}
             />
+            {fieldErrors.email && (
+              <p className="text-red-400 text-xs mt-1 font-semibold">{fieldErrors.email}</p>
+            )}
           </div>
 
           <div>
@@ -170,7 +198,7 @@ const Register = () => {
               </button>
             </div>
             {fieldErrors.password && (
-              <p className="text-red-400 text-sm mt-1">{fieldErrors.password}</p>
+              <p className="text-red-400 text-xs mt-1 font-semibold">{fieldErrors.password}</p>
             )}
           </div>
 
@@ -199,7 +227,7 @@ const Register = () => {
               </button>
             </div>
             {fieldErrors.confirmPassword && (
-              <p className="text-red-400 text-sm mt-1">
+              <p className="text-red-400 text-xs mt-1 font-semibold">
                 {fieldErrors.confirmPassword}
               </p>
             )}
@@ -214,7 +242,7 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-primary to-accent text-white rounded-xl py-3 font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full btn-primary text-white rounded-xl py-3 font-semibold disabled:opacity-60 flex items-center justify-center min-h-[48px] active:scale-[0.97] transition-transform duration-100"
           >
             {loading ? <Spinner size="sm" color="#FFFFFF" /> : "Create Account"}
           </button>
@@ -224,7 +252,7 @@ const Register = () => {
           Already have an account?{" "}
           <Link
             to="/login"
-            className="text-primary hover:text-accent transition-colors font-medium"
+            className="text-primary hover:text-accent transition-colors font-semibold"
           >
             Sign In
           </Link>

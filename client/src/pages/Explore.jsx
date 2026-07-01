@@ -13,6 +13,7 @@ const Explore = () => {
   const [searchParams] = useSearchParams();
   usePageTitle("Explore");
   const [posts, setPosts] = useState([]);
+  const [isFocused, setIsFocused] = useState(false);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -159,18 +160,19 @@ const Explore = () => {
     </div>
   );
 
+// UI UPGRADED: Explore
   return (
     <div className="w-full pb-12">
       <div className="w-full max-w-2xl mx-auto pt-4 px-4">
         {/* Sticky Search Input Bar */}
-        <div className="sticky top-0 bg-[#0F0F1A]/95 z-20 pb-4 backdrop-blur-md select-none">
+        <div className="sticky top-0 bg-[#0A0A14]/95 z-20 pb-4 backdrop-blur-md select-none">
           <div className="relative flex items-center">
-            <span className="absolute left-4 text-[#A0A0C0]">
+            <span className={`absolute left-4 text-[#A0A0C0] transition-transform duration-500 z-10 ${isFocused ? "rotate-[360deg] text-primary" : ""}`}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                 />
               </svg>
@@ -179,8 +181,10 @@ const Explore = () => {
               type="text"
               placeholder="Search people..."
               value={searchQuery}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#1E1E2E] border border-[#3A3A5E] text-white rounded-full pl-12 pr-4 py-3 w-full focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all text-sm shadow-md"
+              className="glass input-field text-white rounded-full pl-12 pr-4 w-full h-[52px] text-sm shadow-md"
             />
           </div>
         </div>
@@ -233,15 +237,19 @@ const Explore = () => {
               <div>
                 <h2 className="text-white font-semibold text-base mb-3 flex items-center gap-2 select-none">
                   <span>Suggested for you</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
                 </h2>
-                <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-3 divide-y divide-[#3A3A5E]/10 space-y-1 shadow-lg">
+                {/* Horizontal scroll on mobile, cols on desktop */}
+                <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto pb-3 md:pb-0 scroll-smooth no-scrollbar select-none">
                   {suggestedUsers.map((user) => (
-                    <UserListItem
-                      key={user._id}
-                      user={user}
-                      onFollowToggle={handleSuggestionFollowToggle}
-                    />
+                    <div key={user._id} className="min-w-[170px] md:min-w-0 flex-shrink-0">
+                      <UserListItem
+                        user={user}
+                        onFollowToggle={handleSuggestionFollowToggle}
+                        layout="card"
+                        showFollowButton={true}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -293,9 +301,20 @@ const Explore = () => {
                           key={post._id}
                           ref={isLastElement ? lastPostRef : null}
                           onClick={() => setSelectedPost(post)}
-                          className="aspect-square bg-[#1E1E2E] border border-[#3A3A5E] rounded-xl overflow-hidden cursor-pointer relative group flex-shrink-0"
+                          className="aspect-square bg-[#12121F] border border-[#2A2A40] rounded-[16px] overflow-hidden cursor-pointer relative group transition-all duration-300 hover:scale-[1.03] hover:border-primary/50 shadow-md flex-shrink-0"
                         >
                           {elementContent}
+                          {/* Hover Overlay */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-6 text-white font-bold select-none pointer-events-none z-10">
+                            <div className="flex items-center gap-1.5 animate-[heartPop_0.3s_ease]">
+                              <span>❤️</span>
+                              <span className="font-mono text-sm">{post.likesCount}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 animate-[heartPop_0.3s_ease]" style={{ animationDelay: "0.05s" }}>
+                              <span>💬</span>
+                              <span className="font-mono text-sm">{post.commentsCount || 0}</span>
+                            </div>
+                          </div>
                         </div>
                       );
                     })}

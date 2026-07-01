@@ -263,8 +263,9 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
     setCommentsPage(nextPage);
   };
 
+  // UI UPGRADED: PostCard
   return (
-    <div className="bg-[#1E1E2E] rounded-2xl p-4 mb-4 border border-[#3A3A5E] hover:border-primary/40 transition-colors duration-300 relative">
+    <div className="bg-[#12121F] border border-[#2A2A40] rounded-[20px] p-4 mb-4 hover:border-[#3D3D60] hover:shadow-[0_0_30px_rgba(108,99,255,0.11)] transition-all duration-200 relative">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={handleUserClick}>
@@ -402,59 +403,49 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
 
       {/* Image */}
       {post.image && (
-        <div className="mt-3 overflow-hidden rounded-xl bg-[#0F0F1A]">
+        <div className="mt-3 overflow-hidden rounded-[16px] bg-[#0F0F1A]">
           <img
             src={post.image}
             alt="Post media"
             onClick={() => setShowFullImage(true)}
-            className="w-full max-h-[500px] object-cover cursor-pointer hover:opacity-90 transition-opacity duration-200"
+            className="w-full max-h-[500px] object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-300"
           />
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-6 border-t border-[#3A3A5E] pt-3 mt-4 select-none">
+      <div className="flex items-center gap-6 border-t border-[#3A3A5E]/40 pt-3 mt-4 select-none">
         {/* Like Button */}
         <button
           onClick={handleLike}
-          className={`flex items-center gap-2 text-sm hover:scale-105 transition duration-200 group active:scale-95 ${
-            isLiked ? "text-[#FF6584]" : "text-[#A0A0C0] hover:text-[#FF6584]"
+          className={`flex items-center gap-2 text-sm transition-all duration-200 group active:scale-[0.97] hover:text-[#FF6584] hover:shadow-[0_0_15px_rgba(255,101,132,0.25)] rounded-lg px-2.5 py-1 ${
+            isLiked ? "text-[#FF6584]" : "text-[#A0A0C0]"
           }`}
           aria-label="Like Post"
         >
-          {isLiked ? (
-            <svg
-              className="w-5 h-5 fill-[#FF6584] stroke-[#FF6584] transition-transform duration-300"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
-            </svg>
-          ) : (
-            <svg
-              className="w-5 h-5 fill-none stroke-current group-hover:fill-[#FF6584]/20 transition-transform duration-300"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-              />
-            </svg>
-          )}
+          <svg
+            className={`w-5 h-5 transition-transform duration-300 ${
+              isLiked 
+                ? "fill-[#FF6584] stroke-[#FF6584] animate-[heartPop_0.3s_ease]" 
+                : "fill-none stroke-current group-hover:fill-[#FF6584]/20"
+            }`}
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
           <span className="font-medium">{likesCount}</span>
         </button>
 
         {/* Comment Button */}
         <button
           onClick={handleCommentToggle}
-          className={`flex items-center gap-2 text-sm hover:scale-105 hover:text-primary transition duration-200 ${
-            showComments ? "text-primary" : "text-[#A0A0C0]"
+          className={`flex items-center gap-2 text-sm transition-all duration-200 hover:text-primary hover:shadow-[0_0_15px_rgba(108,99,255,0.25)] rounded-lg px-2.5 py-1 ${
+            showComments ? "text-primary animate-[heartPop_0.3s_ease]" : "text-[#A0A0C0]"
           }`}
           aria-label="Comment on Post"
         >
@@ -472,7 +463,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
         {/* Share Button */}
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 text-[#A0A0C0] text-sm hover:scale-105 hover:text-accent transition duration-200"
+          className="flex items-center gap-2 text-[#A0A0C0] text-sm transition duration-200 hover:text-accent hover:shadow-[0_0_15px_rgba(255,101,132,0.25)] rounded-lg px-2.5 py-1"
           aria-label="Share Post"
         >
           <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24">
@@ -488,8 +479,11 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
       </div>
 
       {/* Comments Drawer (Part 5) */}
-      {showComments && (
-        <div className="border-t border-[#3A3A5E] pt-3 mt-3 space-y-3 animate-fadeIn">
+      <div 
+        className={`border-t border-[#3A3A5E]/40 pt-3 mt-3 space-y-3 overflow-hidden transition-all duration-300 ease-in-out ${
+          showComments ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0 pointer-events-none"
+        }`}
+      >
           {/* Comment Form */}
           <form onSubmit={handleAddCommentSubmit} className="flex gap-2.5 items-center">
             <Avatar user={currentUser} size="sm" className="w-8 h-8" />
@@ -654,8 +648,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
               )}
             </div>
           )}
-        </div>
-      )}
+      </div>
 
       {/* Lightbox Modal */}
       {showFullImage && (

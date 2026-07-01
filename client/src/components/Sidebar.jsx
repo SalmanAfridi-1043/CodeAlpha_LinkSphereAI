@@ -54,8 +54,9 @@ const Sidebar = () => {
     { label: "Create Post", path: "/create", icon: "✏️" },
   ];
 
+// UI UPGRADED: Sidebar
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-16 lg:w-64 bg-[#1E1E2E] border-r border-[#3A3A5E] z-30 transition-all duration-300 flex flex-col justify-between py-6 px-3 select-none hidden md:flex">
+    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-16 lg:w-64 glass z-30 transition-all duration-300 flex flex-col justify-between py-6 px-3 select-none hidden md:flex">
       
       {/* Top Section Navigation Links */}
       <div className="flex flex-col gap-2">
@@ -64,10 +65,10 @@ const Sidebar = () => {
             key={item.label}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition duration-200 relative ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative border-l-[3px] ${
                 isActive
-                  ? "bg-[#6C63FF]/20 text-[#6C63FF] font-semibold"
-                  : "text-[#A0A0C0] hover:bg-[#2A2A3E] hover:text-white"
+                  ? "bg-gradient-to-br from-[#6C63FF]/15 to-[#FF6584]/05 border-[#6C63FF] text-white font-semibold"
+                  : "border-transparent text-[#A0A0C0] hover:bg-[#1A1A2E] hover:text-white hover:border-[#6C63FF]/50"
               } justify-center lg:justify-start`
             }
             title={item.label}
@@ -86,9 +87,9 @@ const Sidebar = () => {
       </div>
 
       {/* Middle Section: User Mini Card (Visible only on Desktop) */}
-      <div className="hidden lg:flex flex-col items-center p-4 bg-[#2A2A3E]/30 rounded-2xl border border-[#3A3A5E]/40 mb-2">
+      <div className="hidden lg:flex flex-col items-center p-4 glass rounded-2xl mb-2 border border-transparent shadow-[0_0_0_1px_rgba(108,99,255,0.27)]">
         <NavLink to={`/profile/${currentUser.username}`} className="flex flex-col items-center">
-          <Avatar user={currentUser} size="md" userId={currentUser._id} showOnlineStatus={true} />
+          <Avatar user={currentUser} size="md" userId={currentUser._id} showOnlineStatus={true} showRing={true} />
           <span className="text-white font-semibold text-sm mt-2 hover:underline truncate max-w-[180px]">
             {currentUser.name}
           </span>

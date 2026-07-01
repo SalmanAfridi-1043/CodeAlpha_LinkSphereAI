@@ -74,13 +74,14 @@ const Navbar = () => {
 
   if (!currentUser) return null;
 
+// UI UPGRADED: Navbar
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 w-full h-16 bg-[#1E1E2E]/80 backdrop-blur-md border-b border-[#3A3A5E] select-none shadow-lg">
+    <nav className="fixed top-0 left-0 right-0 z-50 w-full h-16 glass select-none shadow-lg">
       <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
         
         {/* Left Side: Brand Logo */}
         <Link to="/" className="flex items-center gap-1.5 focus:outline-none">
-          <span className="font-bold text-xl bg-gradient-to-r from-[#6C63FF] to-[#FF6584] bg-clip-text text-transparent tracking-wide">
+          <span className="font-bold text-xl gradient-text tracking-wide">
             LinkSphere
           </span>
           <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-[#FF6584]/20 text-[#FF6584] border border-[#FF6584]/30 leading-none">
@@ -96,7 +97,7 @@ const Navbar = () => {
             placeholder="Search LinkSphereAI..."
             value={searchVal}
             onChange={handleSearchChange}
-            className="bg-[#2A2A3E] border border-[#3A3A5E]/60 text-white placeholder-[#A0A0C0]/65 text-xs rounded-full pl-9 pr-4 py-2 w-64 focus:border-[#6C63FF] focus:outline-none transition-all duration-300"
+            className="glass input-field text-white placeholder-[#A0A0C0]/65 text-xs rounded-full pl-9 pr-4 py-2 w-64 focus:outline-none transition-all duration-300"
           />
         </div>
 
@@ -120,7 +121,7 @@ const Navbar = () => {
                 setShowUserDropdown(false);
               }}
               title="Notifications"
-              className="text-[#A0A0C0] hover:text-white transition duration-200 relative focus:outline-none flex items-center p-1.5 rounded-lg hover:bg-[#2A2A3E]/60"
+              className={`text-[#A0A0C0] hover:text-white transition duration-200 relative focus:outline-none flex items-center p-1.5 rounded-lg hover:bg-[#2A2A3E]/60 ${unreadCount > 0 ? "animate-[bellPulse_1s_infinite]" : ""}`}
             >
               <span className="text-xl">🔔</span>
               {unreadCount > 0 && (

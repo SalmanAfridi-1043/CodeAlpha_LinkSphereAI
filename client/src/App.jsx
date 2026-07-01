@@ -36,7 +36,25 @@ const App = () => {
       <AuthProvider>
         <SocketProvider>
           <BrowserRouter>
-            <Toaster position="top-right" />
+            {/* UI UPGRADED: App Toaster */}
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: '#12121F',
+                  color: '#FFFFFF',
+                  border: '1px solid #2A2A40',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                },
+                success: {
+                  iconTheme: { primary: '#00D9A3', secondary: '#12121F' }
+                },
+                error: {
+                  iconTheme: { primary: '#FF6584', secondary: '#12121F' }
+                }
+              }}
+            />
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<Login />} />

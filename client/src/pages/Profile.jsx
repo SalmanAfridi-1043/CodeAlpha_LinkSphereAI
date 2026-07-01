@@ -310,7 +310,8 @@ const Profile = () => {
     <div className="w-full pb-12">
       <div className="w-full max-w-2xl mx-auto pt-4 px-4">
         {/* Profile Card Shell */}
-        <div className="bg-[#1E1E2E] rounded-2xl border border-[#3A3A5E] overflow-hidden mb-6 shadow-xl relative animate-fadeIn">
+        // UI UPGRADED: Profile
+        <div className="bg-[#12121F] rounded-[20px] border border-[#2A2A40] overflow-hidden mb-6 shadow-xl relative animate-fadeIn">
           {/* Cover Image */}
           <div className="h-48 md:h-56 bg-gradient-to-r from-primary/30 to-accent/30 relative select-none">
             {profileUser.coverImage ? (
@@ -325,12 +326,19 @@ const Profile = () => {
               </div>
             )}
 
+            {/* Dark gradient overlay at bottom */}
+            <div 
+              className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none select-none z-10"
+              style={{ background: "linear-gradient(to top, #0A0A14 0%, transparent 100%)" }}
+            />
+
             {/* Overlapping Avatar */}
-            <div className="absolute -bottom-12 left-6">
+            <div className="absolute -bottom-16 left-6 z-20">
               <Avatar
                 user={profileUser}
-                size="lg"
-                className="ring-4 ring-[#1E1E2E] w-24 h-24 md:w-28 md:h-28"
+                size="xl"
+                showRing={true}
+                className="border-4 border-[#0A0A14]"
               />
             </div>
           </div>
@@ -483,77 +491,92 @@ const Profile = () => {
             )}
 
             {/* Stats Row (Clickable tabs toggle - Part 6) */}
-            <div className="flex gap-6 mt-6 border-t border-[#3A3A5E] pt-4 select-none">
+            <div className="flex gap-6 mt-6 border-t border-[#3A3A5E]/40 pt-4 select-none">
               <div
-                className="flex items-center gap-1 text-sm cursor-pointer hover:opacity-90"
+                className="flex items-center gap-1 text-sm cursor-pointer group relative pb-1"
                 onClick={() => setActiveTab("posts")}
               >
-                <span className="font-bold text-white">{totalPostsCount}</span>
-                <span className="text-[#A0A0C0]">Posts</span>
+                <span className="font-bold text-white group-hover:gradient-text">{totalPostsCount}</span>
+                <span className="text-[#A0A0C0] group-hover:gradient-text">Posts</span>
+                <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full" />
               </div>
               <div
-                className="flex items-center gap-1 text-sm cursor-pointer hover:opacity-90"
+                className="flex items-center gap-1 text-sm cursor-pointer group relative pb-1"
                 onClick={() => setActiveTab("followers")}
               >
-                <span className="font-bold text-white">
+                <span className="font-bold text-white group-hover:gradient-text font-mono">
                   {profileUser.followers?.length || 0}
                 </span>
-                <span className="text-[#A0A0C0]">Followers</span>
+                <span className="text-[#A0A0C0] group-hover:gradient-text">Followers</span>
+                <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full" />
               </div>
               <div
-                className="flex items-center gap-1 text-sm cursor-pointer hover:opacity-90"
+                className="flex items-center gap-1 text-sm cursor-pointer group relative pb-1"
                 onClick={() => setActiveTab("following")}
               >
-                <span className="font-bold text-white">
+                <span className="font-bold text-white group-hover:gradient-text font-mono">
                   {profileUser.following?.length || 0}
                 </span>
-                <span className="text-[#A0A0C0]">Following</span>
+                <span className="text-[#A0A0C0] group-hover:gradient-text">Following</span>
+                <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Tab Navigation (Four Tabs - Part 6) */}
-        <div className="flex border-b border-[#3A3A5E] mb-6 overflow-x-auto select-none no-scrollbar">
+        <div className="flex border-b border-[#3A3A5E]/40 mb-6 overflow-x-auto select-none no-scrollbar">
           <button
             onClick={() => setActiveTab("posts")}
-            className={`py-3 px-5 text-sm font-semibold border-b-2 transition duration-200 whitespace-nowrap ${
+            className={`py-3 px-5 text-sm font-semibold transition duration-200 whitespace-nowrap relative ${
               activeTab === "posts"
-                ? "border-primary text-primary"
-                : "border-transparent text-[#A0A0C0] hover:text-white"
+                ? "text-primary"
+                : "text-[#A0A0C0] hover:text-white"
             }`}
           >
             Posts ({totalPostsCount})
+            {activeTab === "posts" && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-primary to-accent animate-fadeIn" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab("followers")}
-            className={`py-3 px-5 text-sm font-semibold border-b-2 transition duration-200 whitespace-nowrap ${
+            className={`py-3 px-5 text-sm font-semibold transition duration-200 whitespace-nowrap relative ${
               activeTab === "followers"
-                ? "border-primary text-primary"
-                : "border-transparent text-[#A0A0C0] hover:text-white"
+                ? "text-primary"
+                : "text-[#A0A0C0] hover:text-white"
             }`}
           >
             Followers ({profileUser.followers?.length || 0})
+            {activeTab === "followers" && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-primary to-accent animate-fadeIn" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab("following")}
-            className={`py-3 px-5 text-sm font-semibold border-b-2 transition duration-200 whitespace-nowrap ${
+            className={`py-3 px-5 text-sm font-semibold transition duration-200 whitespace-nowrap relative ${
               activeTab === "following"
-                ? "border-primary text-primary"
-                : "border-transparent text-[#A0A0C0] hover:text-white"
+                ? "text-primary"
+                : "text-[#A0A0C0] hover:text-white"
             }`}
           >
             Following ({profileUser.following?.length || 0})
+            {activeTab === "following" && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-primary to-accent animate-fadeIn" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab("likes")}
-            className={`py-3 px-5 text-sm font-semibold border-b-2 transition duration-200 whitespace-nowrap ${
+            className={`py-3 px-5 text-sm font-semibold transition duration-200 whitespace-nowrap relative ${
               activeTab === "likes"
-                ? "border-primary text-primary"
-                : "border-transparent text-[#A0A0C0] hover:text-white"
+                ? "text-primary"
+                : "text-[#A0A0C0] hover:text-white"
             }`}
           >
             Likes
+            {activeTab === "likes" && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-primary to-accent animate-fadeIn" />
+            )}
           </button>
         </div>
 
