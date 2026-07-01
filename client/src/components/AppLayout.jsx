@@ -1,4 +1,3 @@
-// VERIFIED: components/AppLayout.jsx — no issues found
 import { Outlet, NavLink } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
@@ -7,88 +6,75 @@ import useAuth from "../hooks/useAuth";
 
 const AppLayout = () => {
   const { user } = useAuth();
-
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-[#0F0F1A] text-white flex flex-col font-sans select-none overflow-x-hidden">
+    <div
+      className="min-h-screen font-sans select-none overflow-x-hidden"
+      style={{ color: "var(--text)" }}
+    >
+      {/* Subtle dot-grid background pattern */}
+      <div className="app-bg-pattern" aria-hidden="true" />
+
       {/* Top Navbar */}
       <Navbar />
 
-      {/* Main Container */}
-      <div className="flex flex-1 w-full max-w-7xl mx-auto relative">
-        {/* Left Sidebar: Collapses to icon-only (w-16) on md-lg, hidden on mobile */}
-        <Sidebar />
+      {/* Main Layout */}
+      <div className="flex min-h-screen">
 
-        {/* Center Content Column */}
-        {/* Margins dynamically adjust: 
-            - Mobile (<md): w-full, ml-0, mr-0, pt-16, pb-20 (extra spacing at bottom for mobile nav)
-            - Tablet (md to lg): ml-16, mr-0
-            - Desktop (>lg): ml-64, mr-80
-        */}
-        <main className="flex-1 w-full min-h-screen pt-16 pb-20 md:pb-6 ml-0 md:ml-16 lg:ml-64 mr-0 lg:mr-80 transition-all duration-300">
-          <div className="animate-fadeIn w-full h-full">
+        {/* Left Sidebar — fixed, always full width, hidden on mobile */}
+        <aside
+          className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 hidden md:flex flex-col border-r"
+          style={{
+            background:          "var(--glass-bg)",
+            backdropFilter:      "blur(20px)",
+            WebkitBackdropFilter:"blur(20px)",
+            borderColor:         "var(--glass-border)",
+          }}
+        >
+          <Sidebar />
+        </aside>
+
+        {/* Center Content — offset for sidebar on md+, sidebar+right on lg+ */}
+        <main className="flex-1 md:ml-64 lg:mr-80 pt-16 min-h-screen pb-20 md:pb-6">
+          <div className="max-w-[620px] w-full mx-auto px-4 py-6 animate-fadeIn">
             <Outlet />
           </div>
         </main>
 
-        {/* Right Sidebar Panel: Visible only on lg+ screens (>= 1024px) */}
-        <RightPanel />
+        {/* Right Panel — fixed, visible on lg+ */}
+        <aside
+          className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 hidden lg:flex flex-col border-l"
+          style={{
+            background:  "transparent",
+            borderColor: "var(--glass-border)",
+          }}
+        >
+          <RightPanel />
+        </aside>
       </div>
 
-      {/* UI UPGRADED: AppLayout */}
-      {/* Mobile Bottom Navigation Bar: Visible only on mobile (<md) */}
-      <nav className="fixed bottom-0 left-0 right-0 glass h-14 z-40 flex md:hidden items-center justify-around px-6">
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
-              isActive
-                ? "bg-gradient-to-br from-[#6C63FF]/20 to-[#FF6584]/05 text-primary scale-110 shadow-[0_0_15px_rgba(108,99,255,0.25)]"
-                : "text-[#A0A0C0] hover:text-white"
-            }`
-          }
-        >
-          <span className="text-xl">🏠</span>
+      {/* Mobile Bottom Navigation */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 h-14 z-40 flex md:hidden items-center justify-around px-4"
+        style={{
+          background:          "var(--glass-bg)",
+          backdropFilter:      "blur(20px)",
+          WebkitBackdropFilter:"blur(20px)",
+          borderTop:           "1px solid var(--glass-border)",
+        }}
+      >
+        <NavLink to="/" className={({ isActive }) => `flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-300 ${isActive ? "bg-gradient-to-br from-[#6C63FF]/25 to-[#FF6584]/10 text-[var(--primary)] scale-105 shadow-[0_0_16px_var(--primary-glow)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         </NavLink>
-
-        <NavLink
-          to="/explore"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
-              isActive
-                ? "bg-gradient-to-br from-[#6C63FF]/20 to-[#FF6584]/05 text-primary scale-110 shadow-[0_0_15px_rgba(108,99,255,0.25)]"
-                : "text-[#A0A0C0] hover:text-white"
-            }`
-          }
-        >
-          <span className="text-xl">🔍</span>
+        <NavLink to="/explore" className={({ isActive }) => `flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-300 ${isActive ? "bg-gradient-to-br from-[#6C63FF]/25 to-[#FF6584]/10 text-[var(--primary)] scale-105 shadow-[0_0_16px_var(--primary-glow)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         </NavLink>
-
-        <NavLink
-          to="/create"
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
-              isActive
-                ? "bg-gradient-to-br from-[#6C63FF]/20 to-[#FF6584]/05 text-primary scale-110 shadow-[0_0_15px_rgba(108,99,255,0.25)]"
-                : "text-[#A0A0C0] hover:text-white"
-            }`
-          }
-        >
-          <span className="text-xl">➕</span>
+        <NavLink to="/create" className={({ isActive }) => `flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-300 ${isActive ? "bg-gradient-to-br from-[#6C63FF]/25 to-[#FF6584]/10 text-[var(--primary)] scale-105 shadow-[0_0_16px_var(--primary-glow)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         </NavLink>
-
-        <NavLink
-          to={`/profile/${user.username}`}
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center w-10 h-10 rounded-full transition-all duration-300 ${
-              isActive
-                ? "bg-gradient-to-br from-[#6C63FF]/20 to-[#FF6584]/05 text-primary scale-110 shadow-[0_0_15px_rgba(108,99,255,0.25)]"
-                : "text-[#A0A0C0] hover:text-white"
-            }`
-          }
-        >
-          <span className="text-xl">👤</span>
+        <NavLink to={`/profile/${user.username}`} className={({ isActive }) => `flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-300 ${isActive ? "bg-gradient-to-br from-[#6C63FF]/25 to-[#FF6584]/10 text-[var(--primary)] scale-105 shadow-[0_0_16px_var(--primary-glow)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </NavLink>
       </nav>
     </div>

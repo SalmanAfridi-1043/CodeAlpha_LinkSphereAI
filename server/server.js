@@ -1,4 +1,7 @@
-// VERIFIED: server.js — no issues found
+// Force Node.js to use public DNS servers to resolve MongoDB Atlas SRV connection strings on Windows/certain networks
+const dns = require("dns");
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
+
 require("dotenv").config();
 
 const express = require("express");
@@ -16,6 +19,8 @@ const followRoutes = require("./routes/followRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
+const path = require("path");
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const server = http.createServer(app);
 
 const allowedOrigins = [

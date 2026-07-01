@@ -103,14 +103,33 @@ const Home = () => {
 
   return (
     <div className="w-full pb-12">
-      <div className="w-full max-w-xl mx-auto px-4 pt-4">
         {/* Quick create post bar */}
         <div
           onClick={() => navigate("/create")}
-          className="bg-[#1E1E2E] rounded-2xl p-4 flex items-center gap-3 cursor-pointer mb-6 border border-[#3A3A5E] hover:border-primary/50 transition-colors duration-300"
+          className="flex items-center gap-3 rounded-2xl p-4 mb-6 cursor-pointer transition-all duration-300"
+          style={{
+            background:   "var(--surface)",
+            border:       "1px solid var(--border)",
+            boxShadow:    "0 2px 12px rgba(0,0,0,0.08)",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = "rgba(108,99,255,0.3)";
+            e.currentTarget.style.boxShadow   = "0 4px 20px rgba(108,99,255,0.1)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = "var(--border)";
+            e.currentTarget.style.boxShadow   = "0 2px 12px rgba(0,0,0,0.08)";
+          }}
         >
           <Avatar user={user} size="sm" />
-          <div className="flex-1 bg-[#2A2A3E] border border-[#3A3A5E] rounded-xl px-4 py-2.5 text-[#A0A0C0] text-sm select-none hover:bg-[#2A2A3E]/75 transition">
+          <div
+            className="flex-1 rounded-full px-5 py-2.5 text-[14px] select-none transition-all duration-200"
+            style={{
+              background: "var(--surface-2)",
+              color:      "var(--muted)",
+              border:     "1px solid var(--border)",
+            }}
+          >
             What's on your mind?
           </div>
         </div>
@@ -188,7 +207,6 @@ const Home = () => {
             )}
           </div>
         )}
-      </div>
     </div>
   );
 };

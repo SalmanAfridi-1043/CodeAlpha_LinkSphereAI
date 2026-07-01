@@ -63,14 +63,6 @@ const getSuggestedUsers = asyncHandler(async (req, res) => {
 
 // DEBUGGED: Added updateUserProfile, getFollowers, and getFollowing controller functions to support profile changes and complete follow network populating.
 
-module.exports = {
-  searchUsers,
-  getSuggestedUsers,
-  updateUserProfile,
-  getFollowers,
-  getFollowing,
-};
-
 // @desc    Update user profile details
 // @route   PUT /api/users/update
 // @access  Private
@@ -152,3 +144,11 @@ const getFollowing = asyncHandler(async (req, res) => {
     following: user.following,
   });
 });
+
+module.exports = {
+  searchUsers,
+  getSuggestedUsers,
+  updateUserProfile,
+  getFollowers,
+  getFollowing,
+};

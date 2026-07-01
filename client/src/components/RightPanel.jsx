@@ -1,4 +1,3 @@
-// VERIFIED: components/RightPanel.jsx — no issues found
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
@@ -22,36 +21,43 @@ const RightPanel = () => {
         setLoading(false);
       }
     };
-
     fetchSuggestions();
   }, []);
 
-  const handleFollowToggle = (userId, newStatus) => {
-    // Optionally update local list state if you want, e.g. remove or keep
-    // For a cleaner UX, we can just let UserListItem manage its follow button internally
-  };
-
   return (
-    <aside className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 bg-transparent py-6 px-4 overflow-y-auto hidden lg:block select-none border-l border-[#3A3A5E]/30">
-      {/* Section 1: Who to Follow */}
+    <aside
+      className="fixed right-0 top-16 h-[calc(100vh-4rem)] w-80 py-6 px-4 overflow-y-auto hidden lg:block select-none no-scrollbar"
+      style={{ borderLeft: "1px solid var(--border-light)" }}
+    >
+      {/* Who to Follow */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-white font-bold text-sm tracking-wide">Who to follow</h3>
+          <h3 className="font-bold text-sm tracking-wide" style={{ color: "var(--text)" }}>
+            Who to follow
+          </h3>
           <Link
             to="/explore"
-            className="text-xs text-primary hover:text-primary/80 hover:underline transition font-semibold"
+            className="text-xs font-semibold hover:underline transition"
+            style={{ color: "var(--primary)" }}
           >
             Show more
           </Link>
         </div>
 
-        <div className="bg-[#1E1E2E]/60 backdrop-blur-md rounded-2xl border border-[#3A3A5E]/40 p-2 space-y-1">
+        <div
+          className="rounded-2xl p-2 space-y-1"
+          style={{
+            background: "color-mix(in srgb, var(--surface) 60%, transparent)",
+            border:     "1px solid var(--border-light)",
+            backdropFilter: "blur(12px)",
+          }}
+        >
           {loading ? (
             <div className="flex justify-center py-6">
-              <Spinner size="sm" color="#6C63FF" />
+              <Spinner size="sm" color="var(--primary)" />
             </div>
           ) : suggestions.length === 0 ? (
-            <div className="text-center py-6 text-xs text-[#A0A0C0] font-medium">
+            <div className="text-center py-6 text-xs font-medium" style={{ color: "var(--muted)" }}>
               No suggestions found
             </div>
           ) : (
@@ -59,7 +65,6 @@ const RightPanel = () => {
               <UserListItem
                 key={user._id}
                 user={user}
-                onFollowToggle={handleFollowToggle}
                 size="sm"
               />
             ))
@@ -67,58 +72,44 @@ const RightPanel = () => {
         </div>
       </div>
 
-      {/* Section 2: Stats / Community Card */}
+      {/* Trending Tags / Platform card */}
       <div className="mb-6">
-        <h3 className="text-white font-bold text-sm tracking-wide mb-3">LinkSphere Stats</h3>
-        <div className="bg-[#1E1E2E] rounded-2xl p-4 border border-[#3A3A5E] space-y-4 shadow-xl">
-          <div className="flex items-start gap-3">
-            <span className="text-lg mt-0.5">🌍</span>
-            <div>
-              <p className="text-xs font-semibold text-white">Global Community</p>
-              <p className="text-[10px] text-[#A0A0C0] mt-0.5 leading-relaxed">
-                Connecting developers and builders worldwide, growing daily.
-              </p>
+        <h3 className="font-bold text-sm tracking-wide mb-3" style={{ color: "var(--text)" }}>
+          About LinkSphereAI
+        </h3>
+        <div
+          className="rounded-2xl p-4 space-y-3"
+          style={{
+            background: "var(--surface)",
+            border:     "1px solid var(--border)",
+            boxShadow:  "var(--shadow-sm)",
+          }}
+        >
+          {[
+            { icon: "🌍", title: "Global Community",    desc: "Connecting developers worldwide, growing daily." },
+            { icon: "⚡", title: "Real-Time Sync",      desc: "Powered by Socket.io — instant likes, follows, comments." },
+            { icon: "🚀", title: "MERN Stack",          desc: "MongoDB · Express · React · Node.js" },
+            { icon: "🔒", title: "JWT Secure Auth",     desc: "Encrypted tokens, safe sessions." },
+          ].map(({ icon, title, desc }) => (
+            <div key={title} className="flex items-start gap-3">
+              <span className="text-base mt-0.5 flex-shrink-0">{icon}</span>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>{title}</p>
+                <p className="text-[10px] mt-0.5 leading-relaxed" style={{ color: "var(--muted)" }}>{desc}</p>
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="text-lg mt-0.5">✨</span>
-            <div>
-              <p className="text-xs font-semibold text-white">Real-Time Sync</p>
-              <p className="text-[10px] text-[#A0A0C0] mt-0.5 leading-relaxed">
-                Powered by Socket.io for instant likes, comments, and follows.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="text-lg mt-0.5">🚀</span>
-            <div>
-              <p className="text-xs font-semibold text-white font-mono">MERN Stack Tech</p>
-              <p className="text-[10px] text-[#A0A0C0] mt-0.5 leading-relaxed">
-                Built with MongoDB, Express, React, and Node.js.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3">
-            <span className="text-lg mt-0.5">🔒</span>
-            <div>
-              <p className="text-xs font-semibold text-white">JWT Secure Auth</p>
-              <p className="text-[10px] text-[#A0A0C0] mt-0.5 leading-relaxed">
-                Robust token encryption, secure cookie store, and safe sessions.
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Section 3: Footer */}
-      <div className="text-[10px] text-[#A0A0C0]/75 px-2 leading-relaxed space-y-1">
-        <p className="hover:text-[#A0A0C0] cursor-pointer transition">
+      {/* Footer */}
+      <div className="text-[10px] px-1 leading-relaxed space-y-1" style={{ color: "var(--muted-faint)" }}>
+        <p className="hover:text-[var(--muted)] cursor-pointer transition">
           Terms · Privacy · About · CodeAlpha
         </p>
-        <p className="font-medium text-[#A0A0C0]/50 font-mono">© 2026 LinkSphereAI</p>
+        <p className="font-mono" style={{ color: "color-mix(in srgb, var(--muted) 40%, transparent)" }}>
+          © 2026 LinkSphereAI · v1.0.0
+        </p>
       </div>
     </aside>
   );

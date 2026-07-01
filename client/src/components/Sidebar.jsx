@@ -1,133 +1,198 @@
-// VERIFIED: components/Sidebar.jsx — no issues found
 import { useState, useEffect } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import useSocket from "../hooks/useSocket";
 import api from "../api/axios";
 import Avatar from "./Avatar";
 
+/* ─────────────────────────────────────────
+   SVG icons — inline so no icon lib needed
+───────────────────────────────────────── */
+const Icons = {
+  Home: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  ),
+  Explore: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+  Bell: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 01-3.46 0" />
+    </svg>
+  ),
+  Profile: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  Create: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+  ),
+};
+
 const Sidebar = () => {
   const { user: currentUser } = useAuth();
   const { unreadCount } = useSocket();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
 
   useEffect(() => {
     if (!currentUser) return;
-
     const fetchStats = async () => {
       try {
         const [profileRes, postsRes] = await Promise.all([
           api.get(`/posts/profile/${currentUser.username}`),
           api.get(`/posts/user/${currentUser.username}?limit=1`),
         ]);
-
         if (profileRes.data.success && postsRes.data.success) {
           setStats({
-            posts: postsRes.data.totalPosts || 0,
+            posts:     postsRes.data.totalPosts || 0,
             followers: profileRes.data.user.followers?.length || 0,
             following: profileRes.data.user.following?.length || 0,
           });
         }
-      } catch (err) {
-        console.error("Error fetching sidebar stats:", err);
-        // Fallback to local context data if API fails
+      } catch {
         setStats({
-          posts: 0,
+          posts:     0,
           followers: currentUser.followers?.length || 0,
           following: currentUser.following?.length || 0,
         });
       }
     };
-
     fetchStats();
   }, [currentUser, location.pathname]);
 
   if (!currentUser) return null;
 
   const navItems = [
-    { label: "Home", path: "/", icon: "🏠" },
-    { label: "Explore", path: "/explore", icon: "🔍" },
-    { label: "Notifications", path: "/notifications", icon: "🔔", badge: unreadCount },
-    { label: "Profile", path: `/profile/${currentUser.username}`, icon: "👤" },
-    { label: "Create Post", path: "/create", icon: "✏️" },
+    { label: "Home",          path: "/",                                Icon: Icons.Home    },
+    { label: "Explore",       path: "/explore",                         Icon: Icons.Explore },
+    { label: "Notifications", path: "/notifications",                   Icon: Icons.Bell,   badge: unreadCount },
+    { label: "Profile",       path: `/profile/${currentUser.username}`, Icon: Icons.Profile },
+    { label: "Create Post",   path: "/create",                          Icon: Icons.Create  },
   ];
 
-// UI UPGRADED: Sidebar
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-16 lg:w-64 glass z-30 transition-all duration-300 flex flex-col justify-between py-6 px-3 select-none hidden md:flex">
-      
-      {/* Top Section Navigation Links */}
-      <div className="flex flex-col gap-2">
-        {navItems.map((item) => (
+    <aside className="flex flex-col justify-between py-5 select-none w-full h-full overflow-y-auto">
+
+      {/* ── Navigation Links ── */}
+      <nav className="flex flex-col gap-1 px-3">
+        {navItems.map(({ label, path, Icon, badge }) => (
           <NavLink
-            key={item.label}
-            to={item.path}
+            key={label}
+            to={path}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative border-l-[3px] ${
+              `group/item relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                 isActive
-                  ? "bg-gradient-to-br from-[#6C63FF]/15 to-[#FF6584]/05 border-[#6C63FF] text-white font-semibold"
-                  : "border-transparent text-[#A0A0C0] hover:bg-[#1A1A2E] hover:text-white hover:border-[#6C63FF]/50"
-              } justify-center lg:justify-start`
+                  ? "bg-gradient-to-r from-[#6C63FF]/20 to-[#FF6584]/10 text-[var(--primary)] shadow-[0_0_12px_var(--primary-glow)]"
+                  : "text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)]"
+              }`
             }
-            title={item.label}
           >
-            <span className="text-xl flex items-center justify-center">{item.icon}</span>
-            <span className="hidden lg:inline text-sm">{item.label}</span>
-            
-            {/* Unread Notifications Badge */}
-            {item.badge !== undefined && item.badge > 0 && (
-              <span className="absolute lg:relative top-1.5 right-1.5 lg:top-auto lg:right-auto lg:ml-auto bg-red-500 text-white text-[9px] font-bold rounded-full px-1 min-w-[15px] h-[15px] flex items-center justify-center border border-[#1E1E2E] lg:border-none animate-pulse">
-                {item.badge}
-              </span>
+            {({ isActive }) => (
+              <>
+                {/* Active left-border bar */}
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-gradient-to-b from-[#6C63FF] to-[#FF6584]" />
+                )}
+
+                {/* Icon */}
+                <span className={`transition-transform duration-200 group-hover/item:scale-110 ${isActive ? "text-[var(--primary)]" : ""}`}>
+                  <Icon />
+                </span>
+
+                {/* Label — always visible */}
+                <span className="text-[14px] font-medium whitespace-nowrap flex-1">
+                  {label}
+                </span>
+
+                {/* Notification badge */}
+                {badge > 0 && (
+                  <span className="flex-shrink-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-[16px] h-[16px] flex items-center justify-center border border-[var(--surface)] animate-pulse">
+                    {badge > 9 ? "9+" : badge}
+                  </span>
+                )}
+              </>
             )}
           </NavLink>
         ))}
-      </div>
+      </nav>
 
-      {/* Middle Section: User Mini Card (Visible only on Desktop) */}
-      <div className="hidden lg:flex flex-col items-center p-4 glass rounded-2xl mb-2 border border-transparent shadow-[0_0_0_1px_rgba(108,99,255,0.27)]">
-        <NavLink to={`/profile/${currentUser.username}`} className="flex flex-col items-center">
-          <Avatar user={currentUser} size="md" userId={currentUser._id} showOnlineStatus={true} showRing={true} />
-          <span className="text-white font-semibold text-sm mt-2 hover:underline truncate max-w-[180px]">
-            {currentUser.name}
-          </span>
-          <span className="text-[#A0A0C0] text-xs truncate max-w-[180px]">
-            @{currentUser.username}
-          </span>
-        </NavLink>
+      {/* ── Bottom: Premium Profile Card ── */}
+      <div className="flex flex-col">
+        {/* Premium profile card */}
+        <div
+          className="mx-3 mb-2 p-3.5 rounded-2xl cursor-pointer transition-all duration-300"
+          style={{
+            border:     "1px solid var(--border)",
+            background: "linear-gradient(135deg, rgba(108,99,255,0.06), rgba(255,101,132,0.06))",
+            boxShadow:  "0 0 20px rgba(108,99,255,0.07)",
+          }}
+          onClick={() => navigate(`/profile/${currentUser.username}`)}
+          onMouseEnter={e => {
+            e.currentTarget.style.borderColor = "rgba(108,99,255,0.27)";
+            e.currentTarget.style.boxShadow   = "0 0 24px rgba(108,99,255,0.15)";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.borderColor = "var(--border)";
+            e.currentTarget.style.boxShadow   = "0 0 20px rgba(108,99,255,0.07)";
+          }}
+        >
+          {/* Top row — avatar + name */}
+          <div className="flex items-center gap-2.5 mb-3">
+            <Avatar user={currentUser} size="sm" showRing showOnlineStatus={false} />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-[13px] truncate" style={{ color: "var(--text)" }}>
+                {currentUser.name}
+              </p>
+              <p className="text-[11px] truncate" style={{ color: "var(--muted)" }}>
+                @{currentUser.username}
+              </p>
+            </div>
+            {currentUser.isVerified && (
+              <span className="text-[11px] font-bold" style={{ color: "#6C63FF" }}>✓</span>
+            )}
+          </div>
 
-        {/* Short Stat Row */}
-        <div className="flex justify-around items-center w-full mt-4 pt-3 border-t border-[#3A3A5E]/40 text-[11px] text-[#A0A0C0]">
-          <div className="text-center">
-            <span className="block font-bold text-white text-xs">{stats.posts}</span>
-            Posts
-          </div>
-          <div className="text-center">
-            <span className="block font-bold text-white text-xs">{stats.followers}</span>
-            Followers
-          </div>
-          <div className="text-center">
-            <span className="block font-bold text-white text-xs">{stats.following}</span>
-            Following
+          {/* Divider */}
+          <div className="h-px mb-3" style={{ background: "var(--border)" }} />
+
+          {/* Stats row */}
+          <div className="flex justify-between text-center">
+            {[
+              { label: "Posts",     value: stats.posts },
+              { label: "Followers", value: stats.followers },
+              { label: "Following", value: stats.following },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <p className="font-bold text-[13px]" style={{ color: "var(--text)" }}>{value}</p>
+                <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--muted)" }}>{label}</p>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* Bottom Section: Branding (Visible only on Desktop) */}
-      <div className="hidden lg:block text-center px-2">
-        <p className="text-[11px] text-[#A0A0C0] font-semibold tracking-wide">
-          LinkSphereAI
-        </p>
-        <p className="text-[9px] text-[#A0A0C0]/50 mt-0.5 leading-none">
-          Built with ❤️ for CodeAlpha
-        </p>
-        <p className="text-[9px] font-mono text-[#A0A0C0]/40 mt-1 select-none">
-          v1.0.0
-        </p>
+        {/* Footer text */}
+        <div className="px-4 pb-3 text-center">
+          <p className="text-[10px] tracking-widest uppercase" style={{ color: "var(--muted-faint)" }}>
+            v1.0.0 · Built for CodeAlpha
+          </p>
+        </div>
       </div>
-
     </aside>
   );
 };

@@ -10,6 +10,7 @@ import PostCard from "../components/PostCard";
 import UserListItem from "../components/UserListItem";
 import usePageTitle from "../hooks/usePageTitle";
 import ProfileSkeleton from "../components/skeletons/ProfileSkeleton";
+import EditProfileModal from "../components/EditProfileModal";
 
 const Profile = () => {
   const { username } = useParams();
@@ -22,6 +23,7 @@ const Profile = () => {
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [activeTab, setActiveTab] = useState("posts");
+  const [showEditModal, setShowEditModal] = useState(false);
   
   // Follow states (Part 6 additions)
   const [isFollowing, setIsFollowing] = useState(false);
@@ -142,14 +144,11 @@ const Profile = () => {
   };
 
   const handleEditProfileClick = () => {
-    toast("Profile editing modal will be fully integrated in Part 8!", {
-      icon: "⚙️",
-      style: {
-        background: "#1E1E2E",
-        color: "#F5F5FF",
-        border: "1px solid #3A3A5E",
-      },
-    });
+    setShowEditModal(true);
+  };
+
+  const handleProfileSaved = (updatedUser) => {
+    setProfileUser((prev) => ({ ...prev, ...updatedUser }));
   };
 
   // Follow/Unfollow Button Action (Optimistic updates - Part 6)
@@ -307,10 +306,10 @@ const Profile = () => {
   if (!profileUser) return null;
 
   return (
+    <>
     <div className="w-full pb-12">
       <div className="w-full max-w-2xl mx-auto pt-4 px-4">
         {/* Profile Card Shell */}
-        // UI UPGRADED: Profile
         <div className="bg-[#12121F] rounded-[20px] border border-[#2A2A40] overflow-hidden mb-6 shadow-xl relative animate-fadeIn">
           {/* Cover Image */}
           <div className="h-48 md:h-56 bg-gradient-to-r from-primary/30 to-accent/30 relative select-none">
@@ -679,14 +678,30 @@ const Profile = () => {
           )
         )}
 
-        {/* Placeholder Likes Tab */}
+        {/* Liked Posts Tab */}
         {activeTab === "likes" && (
-          <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-12 text-[#A0A0C0] text-sm font-medium animate-fadeIn">
-            Likes tab details will be wired in Part 5!
+          <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-16 flex flex-col items-center justify-center animate-fadeIn select-none">
+            <span className="text-4xl mb-3 select-none">❤️</span>
+            <h3 className="text-white text-base font-bold mb-1">Liked posts</h3>
+            <p className="text-[#A0A0C0] text-xs max-w-xs">
+              {isOwnProfile
+                ? "Posts you've liked will appear here."
+                : `Posts ${profileUser.name} has liked will appear here.`}
+            </p>
           </div>
         )}
       </div>
     </div>
+
+    {/* Edit Profile Modal */}
+    {showEditModal && (
+      <EditProfileModal
+        profileUser={profileUser}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleProfileSaved}
+      />
+    )}
+    </>
   );
 };
 
