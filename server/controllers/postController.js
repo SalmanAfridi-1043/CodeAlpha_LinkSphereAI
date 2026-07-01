@@ -218,6 +218,7 @@ const deletePost = asyncHandler(async (req, res) => {
 // @desc    Get user profile details by username
 // @route   GET /api/posts/profile/:username
 // @access  Private
+// DEBUGGED: Added isFollowing field to user profile response for accurate follow button render status.
 const getUserProfile = asyncHandler(async (req, res) => {
   const username = req.params.username.toLowerCase();
   const user = await User.findOne({ username })
@@ -230,9 +231,16 @@ const getUserProfile = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
+  const isFollowing = user.followers.some(
+    (follower) => follower._id.toString() === req.user._id.toString()
+  );
+
+  const userObj = user.toObject();
+  userObj.isFollowing = isFollowing;
+
   res.status(200).json({
     success: true,
-    user,
+    user: userObj,
   });
 });
 

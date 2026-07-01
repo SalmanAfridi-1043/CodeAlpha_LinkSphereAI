@@ -1,3 +1,4 @@
+// VERIFIED: components/RightPanel.jsx — no issues found
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";

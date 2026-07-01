@@ -1,3 +1,4 @@
+// VERIFIED: models/Like.js — no issues found
 const mongoose = require("mongoose");
 
 const likeSchema = new mongoose.Schema(

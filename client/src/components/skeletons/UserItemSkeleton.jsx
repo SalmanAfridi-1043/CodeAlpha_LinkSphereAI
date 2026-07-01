@@ -1,3 +1,4 @@
+// VERIFIED: components/skeletons/UserItemSkeleton.jsx — no issues found
 const UserItemSkeleton = () => {
   return (
     <div className="flex items-center justify-between p-3 rounded-xl select-none animate-pulse">

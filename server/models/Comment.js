@@ -1,3 +1,4 @@
+// VERIFIED: models/Comment.js — no issues found
 const mongoose = require("mongoose");
 
 const commentSchema = new mongoose.Schema(

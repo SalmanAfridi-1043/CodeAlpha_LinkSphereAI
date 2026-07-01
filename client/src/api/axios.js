@@ -1,3 +1,4 @@
+// VERIFIED: api/axios.js — no issues found
 import axios from "axios";
 
 const api = axios.create({

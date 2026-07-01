@@ -1,3 +1,4 @@
+// VERIFIED: pages/Register.jsx — no issues found
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";

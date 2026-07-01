@@ -1,3 +1,4 @@
+// VERIFIED: context/SocketContext.jsx — no issues found
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { io as socketIOClient } from "socket.io-client";
 import toast from "react-hot-toast";

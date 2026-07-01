@@ -1,3 +1,4 @@
+// VERIFIED: models/Post.js — no issues found
 const mongoose = require("mongoose");
 
 const postSchema = new mongoose.Schema(

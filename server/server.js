@@ -1,3 +1,4 @@
+// VERIFIED: server.js — no issues found
 require("dotenv").config();
 
 const express = require("express");

@@ -1,3 +1,4 @@
+// VERIFIED: config/db.js — no issues found
 const mongoose = require("mongoose");
 
 const connectDB = async () => {

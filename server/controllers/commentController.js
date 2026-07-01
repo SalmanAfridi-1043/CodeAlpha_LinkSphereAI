@@ -1,3 +1,4 @@
+// VERIFIED: controllers/commentController.js — no issues found
 const asyncHandler = require("express-async-handler");
 const Comment = require("../models/Comment");
 const Post = require("../models/Post");

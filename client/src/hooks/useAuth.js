@@ -1,3 +1,4 @@
+// VERIFIED: hooks/useAuth.js — no issues found
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 

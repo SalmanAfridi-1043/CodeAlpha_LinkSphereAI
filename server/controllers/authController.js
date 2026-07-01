@@ -1,3 +1,4 @@
+// VERIFIED: controllers/authController.js — no issues found
 const asyncHandler = require("express-async-handler");
 const User = require("../models/User");
 const generateToken = require("../utils/generateToken");

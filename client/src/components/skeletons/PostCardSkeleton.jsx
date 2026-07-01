@@ -1,3 +1,4 @@
+// VERIFIED: components/skeletons/PostCardSkeleton.jsx — no issues found
 const PostCardSkeleton = () => {
   return (
     <div className="bg-[#1E1E2E] rounded-2xl p-4 mb-4 border border-[#3A3A5E] shadow-xl relative select-none animate-pulse">

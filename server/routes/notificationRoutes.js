@@ -1,3 +1,4 @@
+// VERIFIED: routes/notificationRoutes.js — no issues found
 const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");

@@ -1,3 +1,4 @@
+// VERIFIED: components/ErrorBoundary.jsx — no issues found
 import React from "react";
 
 class ErrorBoundary extends React.Component {

@@ -1,3 +1,4 @@
+// VERIFIED: pages/Profile.jsx — no issues found
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";

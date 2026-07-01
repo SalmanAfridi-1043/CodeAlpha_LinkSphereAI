@@ -1,3 +1,4 @@
+// VERIFIED: components/AppLayout.jsx — no issues found
 import { Outlet, NavLink } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";

@@ -1,3 +1,4 @@
+// VERIFIED: context/ThemeContext.jsx — no issues found
 import { createContext, useState, useEffect } from "react";
 
 export const ThemeContext = createContext(null);

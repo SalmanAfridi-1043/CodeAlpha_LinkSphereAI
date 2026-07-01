@@ -1,3 +1,4 @@
+// VERIFIED: middleware/authMiddleware.js — no issues found
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 

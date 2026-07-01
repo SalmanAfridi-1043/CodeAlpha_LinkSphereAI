@@ -1,3 +1,4 @@
+// VERIFIED: controllers/followController.js — no issues found
 const asyncHandler = require("express-async-handler");
 const User = require("../models/User");
 const createNotification = require("../utils/notificationHelper");

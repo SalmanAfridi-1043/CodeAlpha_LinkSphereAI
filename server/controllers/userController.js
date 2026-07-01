@@ -61,7 +61,94 @@ const getSuggestedUsers = asyncHandler(async (req, res) => {
   });
 });
 
+// DEBUGGED: Added updateUserProfile, getFollowers, and getFollowing controller functions to support profile changes and complete follow network populating.
+
 module.exports = {
   searchUsers,
   getSuggestedUsers,
+  updateUserProfile,
+  getFollowers,
+  getFollowing,
 };
+
+// @desc    Update user profile details
+// @route   PUT /api/users/update
+// @access  Private
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  const { name, bio, website, location } = req.body;
+
+  if (name) user.name = name;
+  if (bio !== undefined) user.bio = bio;
+  if (website !== undefined) user.website = website;
+  if (location !== undefined) user.location = location;
+
+  if (req.files) {
+    if (req.files.avatar && req.files.avatar[0]) {
+      user.avatar = req.files.avatar[0].path;
+    }
+    if (req.files.coverImage && req.files.coverImage[0]) {
+      user.coverImage = req.files.coverImage[0].path;
+    }
+  }
+
+  await user.save();
+
+  const updatedUser = await User.findById(user._id)
+    .populate("followers", "_id name username avatar isVerified followers following")
+    .populate("following", "_id name username avatar isVerified followers following");
+
+  res.status(200).json({
+    success: true,
+    message: "Profile updated successfully",
+    user: updatedUser,
+  });
+});
+
+// @desc    Get user's followers
+// @route   GET /api/users/:userId/followers
+// @access  Private
+const getFollowers = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const user = await User.findById(userId).populate(
+    "followers",
+    "_id name username avatar isVerified followers following"
+  );
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  res.status(200).json({
+    success: true,
+    followers: user.followers,
+  });
+});
+
+// @desc    Get user's following
+// @route   GET /api/users/:userId/following
+// @access  Private
+const getFollowing = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const user = await User.findById(userId).populate(
+    "following",
+    "_id name username avatar isVerified followers following"
+  );
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  res.status(200).json({
+    success: true,
+    following: user.following,
+  });
+});

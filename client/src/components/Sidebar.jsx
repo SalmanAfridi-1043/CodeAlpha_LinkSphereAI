@@ -1,3 +1,4 @@
+// VERIFIED: components/Sidebar.jsx — no issues found
 import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth";

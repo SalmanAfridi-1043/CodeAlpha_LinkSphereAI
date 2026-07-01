@@ -9,14 +9,23 @@ const sizeClasses = {
   xl: "w-32 h-32 text-2xl font-bold",
 };
 
+// DEBUGGED: Added showRing gradient border, isVerified top-right badge, and defensive try/catch on useSocket.
+
 const Avatar = ({
   user,
   size = "md",
   className = "",
   showOnlineStatus = false,
   userId = null,
+  showRing = false,
 }) => {
-  const socketContext = useSocket();
+  let socketContext = null;
+  try {
+    socketContext = useSocket();
+  } catch (err) {
+    console.warn("useSocket context not available in Avatar:", err);
+  }
+
   const avatarUrl = user?.avatar;
   const name = user?.name || "?";
 
@@ -43,22 +52,28 @@ const Avatar = ({
     <div
       className={`relative inline-flex flex-shrink-0 select-none ${dimensionClasses} ${className}`}
     >
-      <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary to-accent text-white">
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt={name}
-            className="w-full h-full object-cover"
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.target.style.display = "none";
-            }}
-          />
-        ) : (
-          <div className={`uppercase ${textStyleClasses}`}>
-            {getInitials(name)}
-          </div>
-        )}
+      <div
+        className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary to-accent text-white ${
+          showRing ? "p-[2px]" : ""
+        }`}
+      >
+        <div className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-[#1E1E2E] ${showRing ? "" : "bg-transparent"}`}>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={name}
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+          ) : (
+            <div className={`uppercase ${textStyleClasses}`}>
+              {getInitials(name)}
+            </div>
+          )}
+        </div>
       </div>
 
       {isOnline && (
@@ -68,6 +83,17 @@ const Avatar = ({
           }`}
           title="Online"
         />
+      )}
+
+      {user?.isVerified && (
+        <span
+          className={`absolute top-0 right-0 bg-primary text-white rounded-full flex items-center justify-center border border-[#1E1E2E] ${
+            size === "lg" || size === "xl" ? "w-4 h-4 text-[8px]" : "w-3 h-3 text-[6px]"
+          }`}
+          title="Verified"
+        >
+          ✓
+        </span>
       )}
     </div>
   );

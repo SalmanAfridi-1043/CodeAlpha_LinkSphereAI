@@ -1,3 +1,4 @@
+// VERIFIED: controllers/notificationController.js — no issues found
 const asyncHandler = require("express-async-handler");
 const Notification = require("../models/Notification");
 

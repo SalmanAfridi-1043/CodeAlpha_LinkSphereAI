@@ -59,10 +59,10 @@ const UserListItem = ({
       if (data.success) {
         setIsFollowing(data.following);
 
-        // Update local AuthContext user following array
+        // DEBUGGED: Replaced .includes() with .some() for robust ObjectId comparisons
         let updatedFollowing = [...(currentUser.following || [])];
         if (data.following) {
-          if (!updatedFollowing.includes(user._id)) {
+          if (!updatedFollowing.some((id) => id.toString() === user._id.toString())) {
             updatedFollowing.push(user._id);
           }
         } else {

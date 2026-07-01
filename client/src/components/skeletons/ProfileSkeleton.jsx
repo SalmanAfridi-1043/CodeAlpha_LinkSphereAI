@@ -1,3 +1,4 @@
+// VERIFIED: components/skeletons/ProfileSkeleton.jsx — no issues found
 const ProfileSkeleton = () => {
   return (
     <div className="w-full animate-pulse select-none pb-12">

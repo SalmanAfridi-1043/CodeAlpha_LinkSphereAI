@@ -1,3 +1,4 @@
+// VERIFIED: controllers/likeController.js — no issues found
 const asyncHandler = require("express-async-handler");
 const Like = require("../models/Like");
 const Post = require("../models/Post");

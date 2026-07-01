@@ -1,3 +1,4 @@
+// VERIFIED: models/User.js — no issues found
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 

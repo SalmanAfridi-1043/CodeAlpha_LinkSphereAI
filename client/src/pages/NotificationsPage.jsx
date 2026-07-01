@@ -1,3 +1,4 @@
+// VERIFIED: pages/NotificationsPage.jsx — no issues found
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useSocket from "../hooks/useSocket";

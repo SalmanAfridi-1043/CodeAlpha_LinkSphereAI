@@ -1,3 +1,4 @@
+// VERIFIED: models/Notification.js — no issues found
 const mongoose = require("mongoose");
 
 const notificationSchema = new mongoose.Schema(

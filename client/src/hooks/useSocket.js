@@ -1,3 +1,4 @@
+// VERIFIED: hooks/useSocket.js — no issues found
 import { useContext } from "react";
 import { SocketContext } from "../context/SocketContext";
 

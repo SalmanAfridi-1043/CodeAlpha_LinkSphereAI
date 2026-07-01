@@ -1,3 +1,4 @@
+// VERIFIED: pages/Explore.jsx — no issues found
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";

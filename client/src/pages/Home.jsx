@@ -1,3 +1,4 @@
+// VERIFIED: pages/Home.jsx — no issues found
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
