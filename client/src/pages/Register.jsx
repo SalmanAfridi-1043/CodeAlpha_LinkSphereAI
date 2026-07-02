@@ -1,17 +1,17 @@
-// VERIFIED: pages/Register.jsx — no issues found
+// VERIFIED: pages/Register.jsx — password strength indicator added
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import Spinner from "../components/Spinner";
-
 import usePageTitle from "../hooks/usePageTitle";
 
 const inputClass =
   "w-full glass input-field text-white rounded-xl px-4 py-3 focus:outline-none transition-all duration-300";
 
-const labelClass = "block text-[#A0A0C0] text-xs font-semibold uppercase tracking-wider mb-2 select-none";
+const labelClass =
+  "block text-[#A0A0C0] text-xs font-semibold uppercase tracking-wider mb-2 select-none";
 
 const Register = () => {
   usePageTitle("Join LinkSphereAI");
@@ -29,15 +29,30 @@ const Register = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // SECURITY: Password strength rules — mirrors server-side validation regex
+  const getPasswordRules = (pass) => [
+    { test: pass.length >= 8,         msg: "At least 8 characters" },
+    { test: /[A-Z]/.test(pass),       msg: "One uppercase letter" },
+    { test: /[a-z]/.test(pass),       msg: "One lowercase letter" },
+    { test: /\d/.test(pass),           msg: "One number" },
+    { test: /[@$!%*?&]/.test(pass),   msg: "One special character (@$!%*?&)" },
+  ];
+
+  // SECURITY: All 5 rules must pass — same requirement as server
+  const isPasswordStrong = (pass) =>
+    getPasswordRules(pass).every((r) => r.test);
+
   const validateForm = () => {
     const errors = {};
     if (!name.trim()) errors.name = "Name is required";
+
     if (!username.trim()) {
       errors.username = "Username is required";
     } else if (username.length < 3) {
       errors.username = "Username must be at least 3 characters";
     } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      errors.username = "Username can only contain alphanumeric characters and underscores";
+      errors.username =
+        "Username can only contain alphanumeric characters and underscores";
     }
 
     if (!email) {
@@ -48,8 +63,9 @@ const Register = () => {
 
     if (!password) {
       errors.password = "Password is required";
-    } else if (password.length < 6) {
-      errors.password = "Password must be at least 6 characters";
+    } else if (!isPasswordStrong(password)) {
+      // SECURITY: Enforce strong password on the client before sending to server
+      errors.password = "Password must meet all the strength requirements below";
     }
 
     if (password !== confirmPassword) {
@@ -91,26 +107,28 @@ const Register = () => {
     }
   };
 
-  // UI UPGRADED: Register
+  // UI UPGRADED: Register + security strength indicator
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, #0A0A14, #12121F, #1A0A2E, #0A0A14)",
+        background:
+          "linear-gradient(135deg, #0A0A14, #12121F, #1A0A2E, #0A0A14)",
         backgroundSize: "400% 400%",
-        animation: "bgShift 8s ease infinite"
+        animation: "bgShift 8s ease infinite",
       }}
     >
       {/* Floating particles glow effect */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#6C63FF]/10 rounded-full blur-3xl animate-pulse pointer-events-none z-0" />
-      <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#FF6584]/10 rounded-full blur-3xl animate-pulse pointer-events-none z-0" style={{ animationDelay: "2s" }} />
+      <div
+        className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-[#FF6584]/10 rounded-full blur-3xl animate-pulse pointer-events-none z-0"
+        style={{ animationDelay: "2s" }}
+      />
 
       <div className="glass w-full max-w-md rounded-[20px] shadow-[0_0_60px_rgba(108,99,255,0.15),0_0_120px_rgba(108,99,255,0.07)] p-8 border border-white/10 z-10 select-none">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold">
-            <span className="gradient-text">
-              LinkSphere
-            </span>
+            <span className="gradient-text">LinkSphere</span>
             <span className="text-accent">AI</span>
           </h1>
           <p className="text-[#A0A0C0] mt-2 text-sm font-medium">
@@ -119,6 +137,7 @@ const Register = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Full Name */}
           <div>
             <label htmlFor="name" className={labelClass}>
               Full Name
@@ -132,10 +151,13 @@ const Register = () => {
               className={inputClass}
             />
             {fieldErrors.name && (
-              <p className="text-red-400 text-xs mt-1 font-semibold">{fieldErrors.name}</p>
+              <p className="text-red-400 text-xs mt-1 font-semibold">
+                {fieldErrors.name}
+              </p>
             )}
           </div>
 
+          {/* Username */}
           <div>
             <label htmlFor="username" className={labelClass}>
               Username
@@ -154,10 +176,13 @@ const Register = () => {
               />
             </div>
             {fieldErrors.username && (
-              <p className="text-red-400 text-xs mt-1 font-semibold">{fieldErrors.username}</p>
+              <p className="text-red-400 text-xs mt-1 font-semibold">
+                {fieldErrors.username}
+              </p>
             )}
           </div>
 
+          {/* Email */}
           <div>
             <label htmlFor="email" className={labelClass}>
               Email
@@ -171,10 +196,13 @@ const Register = () => {
               className={inputClass}
             />
             {fieldErrors.email && (
-              <p className="text-red-400 text-xs mt-1 font-semibold">{fieldErrors.email}</p>
+              <p className="text-red-400 text-xs mt-1 font-semibold">
+                {fieldErrors.email}
+              </p>
             )}
           </div>
 
+          {/* Password */}
           <div>
             <label htmlFor="password" className={labelClass}>
               Password
@@ -183,7 +211,7 @@ const Register = () => {
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Create a password"
+                placeholder="Create a strong password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={`${inputClass} pr-12`}
@@ -198,10 +226,36 @@ const Register = () => {
               </button>
             </div>
             {fieldErrors.password && (
-              <p className="text-red-400 text-xs mt-1 font-semibold">{fieldErrors.password}</p>
+              <p className="text-red-400 text-xs mt-1 font-semibold">
+                {fieldErrors.password}
+              </p>
+            )}
+            {/* SECURITY: Live password strength indicator — visual feedback as user types */}
+            {password && (
+              <div className="mt-2 space-y-1 p-3 bg-[#0F0F1A]/60 rounded-xl border border-[#2A2A40]">
+                {getPasswordRules(password).map((rule, i) => (
+                  <div key={i} className="flex items-center gap-2 text-[11px]">
+                    <span
+                      className={`transition-all duration-200 ${
+                        rule.test ? "text-green-400" : "text-[#A0A0C0]"
+                      }`}
+                    >
+                      {rule.test ? "✅" : "⭕"}
+                    </span>
+                    <span
+                      className={`transition-colors duration-200 ${
+                        rule.test ? "text-green-400" : "text-[#A0A0C0]"
+                      }`}
+                    >
+                      {rule.msg}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
+          {/* Confirm Password */}
           <div>
             <label htmlFor="confirmPassword" className={labelClass}>
               Confirm Password

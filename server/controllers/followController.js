@@ -51,6 +51,7 @@ const toggleFollow = asyncHandler(async (req, res) => {
     await Promise.all([currentUser.save(), targetUser.save()]);
 
     const io = req.app.get("io");
+    // FIXED: notification identity — recipient is targetUser, sender is active requester
     await createNotification(io, {
       recipientId: targetUser._id,
       senderId: req.user._id,

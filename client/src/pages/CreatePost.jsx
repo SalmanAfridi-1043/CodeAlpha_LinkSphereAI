@@ -10,7 +10,8 @@ import usePageTitle from "../hooks/usePageTitle";
 import MentionInput from "../components/MentionInput";
 
 const CreatePost = () => {
-  const { user } = useAuth();
+  // FIX: Pull updateUser so we can increment postsCount in the sidebar after creating a post
+  const { user, updateUser } = useAuth();
   const navigate = useNavigate();
   usePageTitle("Create Post");
 
@@ -109,6 +110,11 @@ const CreatePost = () => {
         toast.success("Post created! 🎉");
         setContent("");
         handleRemoveImage();
+        // FIX: Increment postsCount locally so sidebar stats update without a page reload
+        updateUser({
+          ...user,
+          postsCount: (user?.postsCount || 0) + 1,
+        });
         navigate("/");
       }
     } catch (err) {

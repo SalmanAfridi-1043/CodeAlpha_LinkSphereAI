@@ -59,15 +59,24 @@ const getFeedPosts = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const currentUser = await User.findById(req.user._id);
-  const userIdsToShow = [...(currentUser.following || []), req.user._id];
 
-  const posts = await Post.find({ user: { $in: userIdsToShow } })
+  // Build feed: own posts + followed users posts
+  const followingIds = currentUser.following || [];
+  const feedUserIds = [...followingIds, req.user._id];
+
+  // If following nobody — show ALL posts (discovery mode)
+  // If following people — show their posts + own posts
+  const query = followingIds.length === 0
+    ? {}  // ← Show everyone's posts when following nobody
+    : { user: { $in: feedUserIds } };
+
+  const posts = await Post.find(query)
     .populate("user", "_id name username avatar isVerified followers following")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
 
-  const totalCount = await Post.countDocuments({ user: { $in: userIdsToShow } });
+  const totalCount = await Post.countDocuments(query);
 
   const postIds = posts.map((p) => p._id);
   const userLikes = await Like.find({ post: { $in: postIds }, user: req.user._id }).select("post");
@@ -257,6 +266,31 @@ const getUserProfile = asyncHandler(async (req, res) => {
   });
 });
 
+// FIXED: searchPosts endpoint for finding posts by content query
+const searchPosts = asyncHandler(async (req, res) => {
+  const q = req.query.q?.trim() || "";
+  if (!q) {
+    return res.status(200).json({
+      success: true,
+      posts: [],
+    });
+  }
+
+  const posts = await Post.find({
+    content: { $regex: q, $options: "i" },
+  })
+    .populate("user", "_id name username avatar isVerified")
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean();
+
+  res.status(200).json({
+    success: true,
+    posts,
+    count: posts.length,
+  });
+});
+
 module.exports = {
   createPost,
   getFeedPosts,
@@ -265,4 +299,5 @@ module.exports = {
   updatePost,
   deletePost,
   getUserProfile,
+  searchPosts,
 };

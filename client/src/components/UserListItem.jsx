@@ -19,7 +19,7 @@ const UserListItem = ({
   const [isFollowing, setIsFollowing] = useState(() => {
     if (!currentUser || !currentUser.following) return false;
     return currentUser.following.some(
-      (id) => id.toString() === user._id.toString()
+      (id) => (id?._id || id).toString() === user._id.toString()
     );
   });
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,7 @@ const UserListItem = ({
     }
     setIsFollowing(
       currentUser.following.some(
-        (id) => id.toString() === user._id.toString()
+        (id) => (id?._id || id).toString() === user._id.toString()
       )
     );
   }, [currentUser, user._id]);
@@ -63,12 +63,15 @@ const UserListItem = ({
         // DEBUGGED: Replaced .includes() with .some() for robust ObjectId comparisons
         let updatedFollowing = [...(currentUser.following || [])];
         if (data.following) {
-          if (!updatedFollowing.some((id) => id.toString() === user._id.toString())) {
-            updatedFollowing.push(user._id);
+          if (!updatedFollowing.some((id) => (id?._id || id).toString() === user._id.toString())) {
+            // Keep elements in the same format: push user object if the first item is an object,
+            // otherwise push the string ID.
+            const hasPopulatedItem = updatedFollowing.length > 0 && typeof updatedFollowing[0] === "object";
+            updatedFollowing.push(hasPopulatedItem ? user : user._id);
           }
         } else {
           updatedFollowing = updatedFollowing.filter(
-            (id) => id.toString() !== user._id.toString()
+            (id) => (id?._id || id).toString() !== user._id.toString()
           );
         }
         updateUser({ ...currentUser, following: updatedFollowing });

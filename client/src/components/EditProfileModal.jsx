@@ -1,29 +1,43 @@
+// FIXED: client/src/components/EditProfileModal.jsx — wrapped in portal, fixed overlay z-index, body overflow, and proper modal constraints
 import { useState, useRef, useEffect } from "react";
+import ReactDOM from "react-dom";
 import toast from "react-hot-toast";
 import api from "../api/axios";
 import useAuth from "../hooks/useAuth";
 import Avatar from "./Avatar";
 import Spinner from "./Spinner";
 
-const EditProfileModal = ({ profileUser, onClose, onSave }) => {
+const EditProfileModal = ({ isOpen = true, profileUser, onClose, onSave }) => {
   const { updateUser } = useAuth();
 
   const [form, setForm] = useState({
-    name: profileUser.name || "",
-    bio: profileUser.bio || "",
-    location: profileUser.location || "",
-    website: profileUser.website || "",
+    name: profileUser?.name || "",
+    bio: profileUser?.bio || "",
+    location: profileUser?.location || "",
+    website: profileUser?.website || "",
   });
 
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(profileUser.avatar || "");
+  const [avatarPreview, setAvatarPreview] = useState(profileUser?.avatar || "");
   const [coverFile, setCoverFile] = useState(null);
-  const [coverPreview, setCoverPreview] = useState(profileUser.coverImage || "");
+  const [coverPreview, setCoverPreview] = useState(profileUser?.coverImage || "");
   const [saving, setSaving] = useState(false);
 
   const avatarInputRef = useRef(null);
   const coverInputRef = useRef(null);
-  const modalRef = useRef(null);
+
+  // Local helper aliases for matching the exact requested layout
+  const name = form.name;
+  const setName = (val) => setForm((prev) => ({ ...prev, name: val }));
+  const bio = form.bio;
+  const setBio = (val) => setForm((prev) => ({ ...prev, bio: val }));
+  const website = form.website;
+  const setWebsite = (val) => setForm((prev) => ({ ...prev, website: val }));
+  const location = form.location;
+  const setLocation = (val) => setForm((prev) => ({ ...prev, location: val }));
+  const loading = saving;
+  const currentUser = profileUser;
+  const error = null;
 
   // Trap focus & close on Escape
   useEffect(() => {
@@ -37,11 +51,6 @@ const EditProfileModal = ({ profileUser, onClose, onSave }) => {
       document.body.style.overflow = "";
     };
   }, [onClose]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -66,9 +75,9 @@ const EditProfileModal = ({ profileUser, onClose, onSave }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
 
-    if (!form.name.trim()) {
+    if (!name.trim()) {
       toast.error("Name cannot be empty");
       return;
     }
@@ -76,10 +85,10 @@ const EditProfileModal = ({ profileUser, onClose, onSave }) => {
     setSaving(true);
     try {
       const formData = new FormData();
-      formData.append("name", form.name.trim());
-      formData.append("bio", form.bio);
-      formData.append("location", form.location);
-      formData.append("website", form.website);
+      formData.append("name", name.trim());
+      formData.append("bio", bio);
+      formData.append("location", location);
+      formData.append("website", website);
       if (avatarFile) formData.append("avatar", avatarFile);
       if (coverFile) formData.append("coverImage", coverFile);
 
@@ -100,212 +109,201 @@ const EditProfileModal = ({ profileUser, onClose, onSave }) => {
     }
   };
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
+  if (!isOpen) return null;
+
+  return ReactDOM.createPortal(
+    <>
+      {/* OVERLAY */}
       <div
-        ref={modalRef}
-        className="relative w-full max-w-lg bg-[#12121F] border border-[#2A2A40] rounded-[24px] shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
-        style={{ boxShadow: "0 0 60px rgba(108,99,255,0.12)" }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#2A2A40] flex-shrink-0">
-          <h2 className="text-white font-bold text-lg tracking-tight">Edit Profile</h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full text-[#A0A0C0] hover:text-white hover:bg-[#2A2A40] transition duration-150"
-          >
-            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-md"
+        onClick={onClose}
+      />
 
-        {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 no-scrollbar">
-          <form onSubmit={handleSubmit} id="edit-profile-form">
+      {/* MODAL */}
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
+        <div
+          className="relative w-full max-w-lg bg-[var(--bg-card)] border border-[#6C63FF33] rounded-[24px] shadow-[0_0_80px_#6C63FF22] flex flex-col pointer-events-auto"
+          style={{ maxHeight: "90vh" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* STICKY HEADER */}
+          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+            <h2 className="text-[var(--text-main)] font-bold text-[17px]">
+              Edit Profile
+            </h2>
+            <button
+              onClick={onClose}
+              className="w-9 h-9 rounded-full bg-[var(--bg-hover)] flex items-center justify-center text-[var(--text-muted)] text-[18px] hover:bg-red-500/20 hover:text-red-400 transition-all duration-200"
+            >
+              ✕
+            </button>
+          </div>
 
-            {/* Cover Image Section */}
-            <div className="relative h-36 bg-gradient-to-r from-primary/30 to-accent/30 group cursor-pointer select-none"
+          {/* SCROLLABLE BODY */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 flex flex-col gap-5">
+            {/* COVER IMAGE */}
+            <div
+              className="relative h-32 rounded-2xl overflow-hidden cursor-pointer group"
               onClick={() => coverInputRef.current?.click()}
             >
               {coverPreview ? (
-                <img
-                  src={coverPreview}
-                  alt="Cover Preview"
-                  className="w-full h-full object-cover"
-                />
+                <img src={coverPreview} className="w-full h-full object-cover" alt="Cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center opacity-40">
-                  <span className="text-[#A0A0C0] text-sm">No cover image</span>
+                <div className="w-full h-full bg-gradient-to-br from-[#6C63FF33] to-[#FF658422] flex items-center justify-center">
+                  <span className="text-[var(--text-muted)] text-sm">
+                    No cover image
+                  </span>
                 </div>
               )}
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-1.5">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="text-white text-xs font-semibold">Change Cover</span>
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                <span className="text-white text-sm font-medium">
+                  📷 Change Cover
+                </span>
               </div>
               <input
                 ref={coverInputRef}
                 type="file"
                 accept="image/*"
-                className="hidden"
+                hidden
                 onChange={handleCoverChange}
               />
             </div>
 
-            {/* Avatar + rest of form */}
-            <div className="px-6 pb-6">
-              {/* Avatar edit bubble */}
-              <div className="relative -mt-10 mb-5 inline-block">
-                <div
-                  className="relative cursor-pointer group"
-                  onClick={() => avatarInputRef.current?.click()}
-                >
-                  <Avatar
-                    user={{ ...profileUser, avatar: avatarPreview }}
-                    size="xl"
-                    showRing={true}
-                    showOnlineStatus={false}
-                    className="border-4 border-[#12121F]"
-                  />
-                  <div className="absolute inset-0 rounded-full bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
+            {/* AVATAR */}
+            <div className="flex items-center gap-4 -mt-8 ml-4">
+              <div
+                className="relative cursor-pointer group"
+                onClick={() => avatarInputRef.current?.click()}
+              >
+                <Avatar
+                  user={{ ...currentUser, avatar: avatarPreview }}
+                  size="xl"
+                  showRing={true}
+                />
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition rounded-full flex items-center justify-center">
+                  <span className="text-white text-lg">📷</span>
                 </div>
                 <input
                   ref={avatarInputRef}
                   type="file"
                   accept="image/*"
-                  className="hidden"
+                  hidden
                   onChange={handleAvatarChange}
                 />
               </div>
+              <p className="text-[var(--text-muted)] text-xs mt-8">
+                Click avatar to change photo
+              </p>
+            </div>
 
-              {/* Form Fields */}
-              <div className="space-y-4">
+            {/* NAME FIELD */}
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5 block">
+                Full Name
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your full name"
+                className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-main)] text-[14px] focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF22] outline-none transition"
+              />
+            </div>
 
-                {/* Name */}
-                <div>
-                  <label className="block text-[#A0A0C0] text-xs font-semibold mb-1.5 uppercase tracking-wider">
-                    Name <span className="text-accent">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    maxLength={50}
-                    placeholder="Your display name"
-                    className="input-field w-full bg-[#1A1A2E] border border-[#2A2A40] text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition placeholder-[#A0A0C0]/50"
-                    required
-                  />
-                  <p className="text-[#A0A0C0]/60 text-[11px] mt-1 text-right">{form.name.length}/50</p>
-                </div>
+            {/* BIO FIELD */}
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5 block">
+                Bio
+              </label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Tell people about yourself..."
+                maxLength={200}
+                rows={3}
+                className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 py-3 text-[var(--text-main)] text-[14px] focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF22] outline-none transition resize-none"
+              />
+              <p
+                className={`text-right text-[11px] mt-1 ${
+                  bio.length > 160 ? "text-[#FF6584]" : "text-[var(--text-muted)]"
+                }`}
+              >
+                {bio.length}/200
+              </p>
+            </div>
 
-                {/* Bio */}
-                <div>
-                  <label className="block text-[#A0A0C0] text-xs font-semibold mb-1.5 uppercase tracking-wider">
-                    Bio
-                  </label>
-                  <textarea
-                    name="bio"
-                    value={form.bio}
-                    onChange={handleChange}
-                    maxLength={200}
-                    rows={3}
-                    placeholder="Tell people a little about yourself..."
-                    className="input-field w-full bg-[#1A1A2E] border border-[#2A2A40] text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition resize-none placeholder-[#A0A0C0]/50"
-                  />
-                  <p className="text-[#A0A0C0]/60 text-[11px] mt-1 text-right">{form.bio.length}/200</p>
-                </div>
-
-                {/* Location */}
-                <div>
-                  <label className="block text-[#A0A0C0] text-xs font-semibold mb-1.5 uppercase tracking-wider">
-                    Location
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0A0C0]">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </span>
-                    <input
-                      type="text"
-                      name="location"
-                      value={form.location}
-                      onChange={handleChange}
-                      maxLength={80}
-                      placeholder="City, Country"
-                      className="input-field w-full bg-[#1A1A2E] border border-[#2A2A40] text-white rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition placeholder-[#A0A0C0]/50"
-                    />
-                  </div>
-                </div>
-
-                {/* Website */}
-                <div>
-                  <label className="block text-[#A0A0C0] text-xs font-semibold mb-1.5 uppercase tracking-wider">
-                    Website
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A0A0C0]">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                    </span>
-                    <input
-                      type="text"
-                      name="website"
-                      value={form.website}
-                      onChange={handleChange}
-                      maxLength={150}
-                      placeholder="https://yourwebsite.com"
-                      className="input-field w-full bg-[#1A1A2E] border border-[#2A2A40] text-white rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition placeholder-[#A0A0C0]/50"
-                    />
-                  </div>
-                </div>
+            {/* WEBSITE FIELD */}
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5 block">
+                Website
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+                  🔗
+                </span>
+                <input
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder="https://yourwebsite.com"
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl pl-9 pr-4 py-3 text-[var(--text-main)] text-[14px] focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF22] outline-none transition"
+                />
               </div>
             </div>
-          </form>
-        </div>
 
-        {/* Footer actions */}
-        <div className="px-6 py-4 border-t border-[#2A2A40] flex items-center justify-end gap-3 flex-shrink-0 bg-[#12121F]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl text-sm font-semibold text-[#A0A0C0] hover:text-white border border-[#2A2A40] hover:border-[#3A3A5E] hover:bg-[#1A1A2E] transition duration-200"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            form="edit-profile-form"
-            disabled={saving || !form.name.trim()}
-            className="px-5 py-2.5 rounded-xl text-sm font-bold text-white btn-primary flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed min-w-[100px] justify-center"
-          >
-            {saving ? (
-              <>
-                <Spinner size="sm" color="#ffffff" />
-                <span>Saving...</span>
-              </>
-            ) : (
-              "Save Changes"
+            {/* LOCATION FIELD */}
+            <div>
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1.5 block">
+                Location
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
+                  📍
+                </span>
+                <input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="City, Country"
+                  className="w-full bg-[var(--bg-input)] border border-[var(--border)] rounded-xl pl-9 pr-4 py-3 text-[var(--text-main)] text-[14px] focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF22] outline-none transition"
+                />
+              </div>
+            </div>
+
+            {/* ERROR */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-[13px]">
+                {error}
+              </div>
             )}
-          </button>
+          </div>
+          {/* END SCROLLABLE BODY */}
+
+          {/* STICKY FOOTER */}
+          <div className="flex-shrink-0 flex gap-3 justify-end px-6 py-4 border-t border-[var(--border)]">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="px-5 py-2.5 rounded-xl text-[14px] font-medium border border-[var(--border)] text-[var(--text-sub)] hover:border-[#6C63FF] hover:text-[#6C63FF] transition disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="px-7 py-2.5 rounded-xl text-[14px] font-semibold text-white bg-gradient-to-r from-[#6C63FF] to-[#FF6584] shadow-[0_0_20px_#6C63FF44] hover:shadow-[0_0_32px_#6C63FF77] hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Spinner size="sm" /> Saving...
+                </>
+              ) : (
+                "✓ Save Changes"
+              )}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>,
+    document.body
   );
 };
 

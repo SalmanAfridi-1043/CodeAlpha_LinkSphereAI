@@ -10,7 +10,8 @@ import useSocket from "../hooks/useSocket";
 import MentionInput from "./MentionInput";
 
 const PostCard = ({ post, onDelete, onUpdate }) => {
-  const { user: currentUser } = useAuth();
+  // FIX: Pull updateUser to decrement postsCount in sidebar on post delete
+  const { user: currentUser, updateUser } = useAuth();
   const navigate = useNavigate();
   const { socket: _socket } = useSocket();
 
@@ -135,6 +136,11 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
       const { data } = await api.delete(`/posts/${post._id}`);
       if (data.success) {
         toast.success("Post deleted successfully");
+        // FIX: Decrement postsCount in auth context so sidebar stats drop immediately
+        updateUser({
+          ...currentUser,
+          postsCount: Math.max(0, (currentUser?.postsCount || 0) - 1),
+        });
         if (onDelete) {
           onDelete(post._id);
         }

@@ -4,10 +4,28 @@ dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 require("dotenv").config();
 
+// SECURITY: Validate required environment variables at startup — prevents silent misconfiguration
+const requiredEnvVars = [
+  "MONGO_URI",
+  "JWT_SECRET",
+  "JWT_EXPIRE",
+  "CLIENT_URL",
+];
+const missingVars = requiredEnvVars.filter((v) => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error("❌ Missing required env vars:", missingVars.join(", "));
+  process.exit(1);
+}
+
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
+
+// SECURITY: HTTP headers — blocks clickjacking, sniffing, XSS, MIME attacks, etc.
+const helmet = require("helmet");
+// SECURITY: Rate limiting — prevents brute-force and DDoS
+const rateLimit = require("express-rate-limit");
 
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
@@ -60,9 +78,79 @@ io.use((socket, next) => {
   }
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// SECURITY: Apply Helmet before all routes — sets 11 protective HTTP response headers
+app.use(helmet());
+// SECURITY: Allow cross-origin images (needed for Cloudinary avatars/covers)
+app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
+
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cors(corsOptions));
+
+// SECURITY: Safe inline sanitizer — zero external dependencies, never touches req.query.
+// Only cleans req.body strings:
+//   - Strips $ characters (NoSQL injection prevention)
+//   - Strips <script> tags and javascript: URIs (XSS prevention)
+//   - Strips inline event handlers like onerror= onclick= (XSS prevention)
+const sanitizeInput = (req, res, next) => {
+  const clean = (obj) => {
+    if (!obj || typeof obj !== "object") return;
+    Object.keys(obj).forEach((key) => {
+      if (typeof obj[key] === "string") {
+        obj[key] = obj[key]
+          .replace(/\$/g, "")
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+          .replace(/javascript:/gi, "")
+          .replace(/on\w+\s*=/gi, "");
+      } else if (typeof obj[key] === "object" && obj[key] !== null) {
+        clean(obj[key]);
+      }
+    });
+  };
+  // Only sanitize body — NEVER touch req.query (read-only getter in Express 5 / Node 22+)
+  if (req.body) clean(req.body);
+  next();
+};
+app.use(sanitizeInput);
+
+// SECURITY: General rate limit — 1000 req/15min in dev, 200 in production
+// High-frequency polling paths (feed, notifications, etc.) are excluded so
+// normal app usage never triggers this limit.
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "production" ? 200 : 1000,
+  message: { success: false, message: "Too many requests — try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Never rate-limit frequently-polled read endpoints
+    const skipPaths = [
+      "/api/posts/feed",
+      "/api/posts/explore",
+      "/api/notifications",
+      "/api/users/suggestions",
+      "/api/messages/unread-count",
+      "/api/connections/pending",
+    ];
+    return skipPaths.some((p) => req.path.startsWith(p));
+  },
+});
+
+// SECURITY: Auth rate limit — brute-force protection on login + register only
+// 20 attempts/15min in production, 100 in dev so testing isn't blocked.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === "production" ? 20 : 100,
+  message: { success: false, message: "Too many login attempts — try again later" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply general limiter across all API routes
+app.use("/api", generalLimiter);
+// Apply auth limiter only to the two write routes — NOT to /me or /logout
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
 
 app.get("/", (req, res) => {
   res.json({ message: "LinkSphereAI API is running..." });
@@ -120,6 +208,7 @@ connectDB().then(() => {
 });
 
 module.exports = { app, server, io, onlineUsers };
+// Trigger nodemon change reload again
 
 // RENDER DEPLOYMENT STEPS:
 // 1. render.com → New Web Service

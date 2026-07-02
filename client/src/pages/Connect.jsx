@@ -26,6 +26,35 @@ const Connect = () => {
   const [myConnections, setMyConnections] = useState([]);
   const [loadingConnections, setLoadingConnections] = useState(false);
 
+  // FIXED: State for "Connect via Profile Link" paste field
+  const [pasteLink, setPasteLink] = useState("");
+
+  // FIXED: Navigate to a profile by pasting their link or typing their username
+  const handlePasteLink = () => {
+    const raw = pasteLink.trim();
+    if (!raw) return;
+    try {
+      // Support full URLs like https://linksphereai.vercel.app/profile/john
+      const url = new URL(raw.includes("http") ? raw : `https://${raw}`);
+      const parts = url.pathname.split("/").filter(Boolean);
+      const profileIndex = parts.indexOf("profile");
+      const username = profileIndex !== -1 ? parts[profileIndex + 1] : null;
+      if (username) {
+        navigate(`/profile/${username}`);
+      } else {
+        toast.error("Could not find a username in that link");
+      }
+    } catch {
+      // Fallback: treat the input as a plain username (strip leading @)
+      const clean = raw.replace(/^@/, "").trim();
+      if (clean) {
+        navigate(`/profile/${clean}`);
+      } else {
+        toast.error("Invalid link or username");
+      }
+    }
+  };
+
   // Fetch pending requests count on mount/interval
   const fetchPendingRequests = async (silent = false) => {
     if (!silent) setLoadingPending(true);
@@ -160,6 +189,35 @@ const Connect = () => {
         {/* Tab 1: Find People */}
         {activeTab === "find" && (
           <div className="flex flex-col gap-5 animate-fadeIn">
+
+            {/* FIXED: Connect via Profile Link card */}
+            <div className="flex flex-col gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
+              <div>
+                <p className="text-sm font-semibold text-white">Connect via Profile Link</p>
+                <p className="text-xs text-[var(--muted)] mt-0.5">
+                  Paste a LinkSphereAI profile link or type a @username to visit and connect
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  value={pasteLink}
+                  onChange={(e) => setPasteLink(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handlePasteLink()}
+                  placeholder="linksphereai.vercel.app/profile/username  or  @username"
+                  className="flex-1 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
+                  style={{
+                    background: "var(--surface-2)",
+                    border: "1px solid var(--border)",
+                  }}
+                />
+                <button
+                  onClick={handlePasteLink}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#6C63FF] to-[#FF6584] text-white text-xs font-semibold whitespace-nowrap hover:opacity-90 transition"
+                >
+                  Go →
+                </button>
+              </div>
+            </div>
             {/* Search inputs */}
             <div className="flex flex-col gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
               <form onSubmit={handleSearch} className="relative flex items-center">
@@ -218,9 +276,11 @@ const Connect = () => {
               </div>
             ) : searchResults.length > 0 ? (
               <div className="flex flex-col gap-3">
+                {/* FIXED: Guard all user fields with optional chaining to prevent crashes on malformed data */}
                 {searchResults.map((user) => {
-                  const hasGitHub = user.website && user.website.includes("github.com");
-                  const shortWebsite = user.website
+                  if (!user?._id) return null;
+                  const hasGitHub = user?.website && user.website.includes("github.com");
+                  const shortWebsite = user?.website
                     ? user.website.replace(/^https?:\/\/(www\.)?/, "")
                     : "";
 
@@ -238,20 +298,22 @@ const Connect = () => {
                         />
                         <div className="min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className="font-semibold text-sm text-white hover:underline cursor-pointer" onClick={() => navigate(`/profile/${user.username}`)}>
-                              {user.name}
+                            <span className="font-semibold text-sm text-white hover:underline cursor-pointer" onClick={() => navigate(`/profile/${user?.username || user._id}`)}>
+                              {/* FIXED: Guard name with fallback */}
+                              {user?.name || "Unknown User"}
                             </span>
-                            {user.isVerified && (
+                            {user?.isVerified && (
                               <span className="text-[#6C63FF] text-[10px]">✓</span>
                             )}
                           </div>
-                          <p className="text-xs text-[var(--muted)]">@{user.username}</p>
-                          {user.bio && (
+                          {/* FIXED: Guard username with fallback */}
+                          <p className="text-xs text-[var(--muted)]">@{user?.username || "unknown"}</p>
+                          {user?.bio && (
                             <p className="text-[11px] text-[var(--text-secondary)] mt-1 line-clamp-1">
                               {user.bio}
                             </p>
                           )}
-                          {user.website && (
+                          {user?.website && (
                             <a
                               href={user.website.startsWith("http") ? user.website : `https://${user.website}`}
                               target="_blank"
@@ -268,8 +330,8 @@ const Connect = () => {
                       <div className="flex-shrink-0 ml-3">
                         <ConnectionButton
                           targetUserId={user._id}
-                          targetUsername={user.username}
-                          initialStatus={user.isConnected ? "accepted" : (user.isPending ? "pending" : null)}
+                          targetUsername={user?.username}
+                          initialStatus={user?.isConnected ? "accepted" : (user?.isPending ? "pending" : null)}
                         />
                       </div>
                     </div>

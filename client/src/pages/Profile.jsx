@@ -12,6 +12,7 @@ import usePageTitle from "../hooks/usePageTitle";
 import ProfileSkeleton from "../components/skeletons/ProfileSkeleton";
 import EditProfileModal from "../components/EditProfileModal";
 import ConnectionButton from "../components/ConnectionButton";
+import ShareProfileModal from "../components/ShareProfileModal";
 
 const Profile = () => {
   const { username } = useParams();
@@ -25,6 +26,7 @@ const Profile = () => {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [activeTab, setActiveTab] = useState("posts");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   // Follow states (Part 6 additions)
   const [isFollowing, setIsFollowing] = useState(false);
@@ -53,7 +55,7 @@ const Profile = () => {
         // Check initial following status
         if (currentUser && data.user) {
           const followingStatus = (currentUser.following || []).some(
-            (id) => id.toString() === data.user._id.toString()
+            (id) => (id?._id || id).toString() === data.user._id.toString()
           );
           setIsFollowing(followingStatus);
         }
@@ -262,12 +264,13 @@ const Profile = () => {
         // Update local AuthContext user following array
         let updatedFollowing = [...(currentUser.following || [])];
         if (data.following) {
-          if (!updatedFollowing.includes(profileUser._id)) {
-            updatedFollowing.push(profileUser._id);
+          if (!updatedFollowing.some((id) => (id?._id || id).toString() === profileUser._id.toString())) {
+            const hasPopulatedItem = updatedFollowing.length > 0 && typeof updatedFollowing[0] === "object";
+            updatedFollowing.push(hasPopulatedItem ? profileUser : profileUser._id);
           }
         } else {
           updatedFollowing = updatedFollowing.filter(
-            (id) => id.toString() !== profileUser._id.toString()
+            (id) => (id?._id || id).toString() !== profileUser._id.toString()
           );
         }
         updateUser({ ...currentUser, following: updatedFollowing });
@@ -417,14 +420,28 @@ const Profile = () => {
 
               {/* Edit or Follow Button (Hover effect unfollow - Part 6) */}
               {isOwnProfile ? (
-                <button
-                  onClick={handleEditProfileClick}
-                  className="bg-[#2A2A3E] hover:bg-[#3A3A5E] text-white border border-[#3A3A5E] hover:border-primary/50 text-xs md:text-sm font-semibold px-4 py-2 rounded-xl transition shadow"
-                >
-                  Edit Profile
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="border border-primary/50 hover:border-primary text-primary hover:bg-primary/10 text-xs md:text-sm font-semibold px-4 py-2 rounded-xl transition shadow flex items-center gap-1.5"
+                  >
+                    🔗 Share Profile
+                  </button>
+                  <button
+                    onClick={handleEditProfileClick}
+                    className="bg-[#2A2A3E] hover:bg-[#3A3A5E] text-white border border-[#3A3A5E] hover:border-primary/50 text-xs md:text-sm font-semibold px-4 py-2 rounded-xl transition shadow"
+                  >
+                    Edit Profile
+                  </button>
+                </div>
               ) : (
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="border border-primary/50 hover:border-primary text-primary hover:bg-primary/10 text-xs md:text-sm font-semibold px-4 py-2 rounded-xl transition shadow flex items-center gap-1.5"
+                  >
+                    🔗 Share
+                  </button>
                   <button
                     onClick={handleFollowToggle}
                     disabled={followLoading}
@@ -759,6 +776,15 @@ const Profile = () => {
         profileUser={profileUser}
         onClose={() => setShowEditModal(false)}
         onSave={handleProfileSaved}
+      />
+    )}
+
+    {/* Share Profile Modal */}
+    {showShareModal && (
+      <ShareProfileModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        user={{ ...profileUser, postsCount: totalPostsCount }}
       />
     )}
     </>

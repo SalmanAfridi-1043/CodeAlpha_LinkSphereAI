@@ -15,7 +15,8 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["like", "comment", "follow", "mention"],
+      // FIXED: Added connection_request type so connection notifications persist to DB
+      enum: ["like", "comment", "follow", "mention", "connection_request"],
       required: true,
     },
     post: {

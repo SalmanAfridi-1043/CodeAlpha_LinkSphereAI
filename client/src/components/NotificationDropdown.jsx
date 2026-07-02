@@ -1,4 +1,4 @@
-// VERIFIED: components/NotificationDropdown.jsx — no issues found
+// FIXED: notification identity — correct sender info display and click triggers
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useSocket from "../hooks/useSocket";
@@ -29,7 +29,12 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
     await markNotificationRead(notification._id);
     onClose();
 
-    if (notification.type === "follow") {
+    if (
+      notification.type === "follow" ||
+      notification.type === "connection_request" ||
+      notification.type === "connection_accepted"
+    ) {
+      // Navigate to sender's profile
       navigate(`/profile/${notification.sender?.username}`);
     } else {
       // For likes, comments, and mentions, navigate back to home feed
@@ -37,7 +42,34 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
     }
   };
 
-// UI UPGRADED: NotificationDropdown
+  const getNotificationText = (notification) => {
+    // Always use notification.sender — never auth user
+    const name = notification?.sender?.name || "Someone";
+
+    const texts = {
+      like: `${name} liked your post`,
+      comment: `${name} commented on your post`,
+      follow: `${name} started following you`,
+      mention: `${name} mentioned you in a post`,
+      connection_request: `${name} sent you a connection request`,
+      connection_accepted: `${name} accepted your connection request`,
+    };
+
+    return texts[notification.type] || `${name} interacted with you`;
+  };
+
+  const getNotificationIcon = (type) => {
+    const icons = {
+      like: "❤️",
+      comment: "💬",
+      follow: "👤",
+      mention: "🔔",
+      connection_request: "🤝",
+      connection_accepted: "✅",
+    };
+    return icons[type] || "🔔";
+  };
+
   return (
     <div className="absolute top-12 right-0 w-80 max-h-96 overflow-y-auto glass rounded-2xl shadow-2xl z-50 animate-fadeIn no-scrollbar flex flex-col select-none">
       {/* Dropdown Header */}
@@ -64,74 +96,51 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
             <p className="text-xs text-[#A0A0C0] font-medium">No notifications yet</p>
           </div>
         ) : (
-          notifications.map((notification, index) => {
+          notifications.map((notification) => {
             const sender = notification.sender || {};
             const senderName = sender.name || "Someone";
-            
-            let actionText = "";
-            if (notification.type === "like") {
-              actionText = "liked your post";
-            } else if (notification.type === "comment") {
-              actionText = "commented on your post";
-            } else if (notification.type === "follow") {
-              actionText = "started following you";
-            } else if (notification.type === "mention") {
-              actionText = "mentioned you in a post";
-            }
 
             return (
               <div
                 key={notification._id}
+                className={`flex items-start gap-3 p-3 cursor-pointer hover:bg-[var(--bg-hover)] transition rounded-xl ${
+                  !notification.isRead
+                    ? "border-l-2 border-[#6C63FF] bg-[#6C63FF08]"
+                    : ""
+                }`}
                 onClick={() => handleNotificationClick(notification)}
-                className={`flex items-start justify-between gap-3 p-3 hover:bg-[#2A2A3E]/40 cursor-pointer transition duration-150 relative animate-[slideIn_0.3s_ease-out]`}
-                style={{ animationDelay: `${index * 0.04}s`, animationFillMode: "both" }}
               >
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  {/* Sender Avatar */}
-                  <div className="flex-shrink-0 relative">
-                    <Avatar user={sender} size="sm" showOnlineStatus={false} />
-                    {!notification.isRead && (
-                      <span className="absolute -top-0.5 -left-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-[#12121F]" />
-                    )}
-                  </div>
-
-                  {/* Content text */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-[#F5F5FF] leading-snug break-words">
-                      <span className="font-semibold text-white hover:underline">
-                        {senderName}
-                      </span>{" "}
-                      {actionText}
-                    </p>
-                    <span className="text-[10px] text-[#A0A0C0] block mt-1">
-                      {formatDate(notification.createdAt)}
-                    </span>
-                  </div>
+                {/* Sender Avatar — NOT current user avatar */}
+                <div className="relative flex-shrink-0">
+                  <Avatar
+                    user={sender}
+                    size="sm"
+                    showOnlineStatus={false}
+                  />
+                  <span className="absolute -bottom-1 -right-1 text-[12px]">
+                    {getNotificationIcon(notification.type)}
+                  </span>
                 </div>
 
-                {/* Type Icon Indicator Circle */}
-                <div className="flex-shrink-0 self-center ml-2">
-                  {notification.type === "like" && (
-                    <div className="w-7 h-7 rounded-full bg-[#FF6584]/15 flex items-center justify-center border border-[#FF6584]/30 shadow-[0_0_10px_rgba(255,101,132,0.15)]">
-                      <span className="text-xs">❤️</span>
-                    </div>
-                  )}
-                  {notification.type === "comment" && (
-                    <div className="w-7 h-7 rounded-full bg-[#6C63FF]/15 flex items-center justify-center border border-[#6C63FF]/30 shadow-[0_0_10px_rgba(108,99,255,0.15)]">
-                      <span className="text-xs">💬</span>
-                    </div>
-                  )}
-                  {notification.type === "follow" && (
-                    <div className="w-7 h-7 rounded-full bg-[#00D9A3]/15 flex items-center justify-center border border-[#00D9A3]/30 shadow-[0_0_10px_rgba(0,217,163,0.15)]">
-                      <span className="text-xs">👤</span>
-                    </div>
-                  )}
-                  {notification.type === "mention" && (
-                    <div className="w-7 h-7 rounded-full bg-[#8B5CF6]/15 flex items-center justify-center border border-[#8B5CF6]/30 shadow-[0_0_10px_rgba(139,92,246,0.15)]">
-                      <span className="text-xs">🔔</span>
-                    </div>
-                  )}
+                {/* Text */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[var(--text-main)] text-[13px] leading-snug break-words text-[#F5F5FF]">
+                    <span className="font-semibold text-white hover:underline">
+                      {senderName}
+                    </span>{" "}
+                    {getNotificationText(notification)
+                      .replace(senderName, "")
+                      .trim()}
+                  </p>
+                  <p className="text-[var(--text-muted)] text-[11px] mt-1 text-[#A0A0C0]">
+                    {formatDate(notification.createdAt)}
+                  </p>
                 </div>
+
+                {/* Unread dot */}
+                {!notification.isRead && (
+                  <div className="w-2 h-2 rounded-full bg-[#6C63FF] flex-shrink-0 mt-1" />
+                )}
               </div>
             );
           })

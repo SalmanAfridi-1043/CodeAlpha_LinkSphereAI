@@ -1,6 +1,8 @@
 const asyncHandler = require("express-async-handler");
 const Connection = require("../models/Connection");
 const User = require("../models/User");
+// FIXED: Import notification helper so connection requests are persisted to DB
+const createNotification = require("../utils/notificationHelper");
 
 // @desc    Send a connection request
 // @route   POST /api/connections/request/:userId
@@ -47,10 +49,23 @@ const sendRequest = asyncHandler(async (req, res) => {
     "_id name username avatar bio isVerified"
   );
 
-  // Emit socket event to receiver
+  // FIXED: Emit socket event to receiver for real-time notification
   const io = req.app.get("io");
   if (io) {
     io.to(receiverId.toString()).emit("connection_request", populatedConnection);
+  }
+
+  // FIXED: Persist notification to DB so it appears after page refresh
+  try {
+    await createNotification(io, {
+      recipientId: receiverId,
+      senderId: senderId,
+      type: "connection_request",
+      postId: null,
+    });
+  } catch (notifErr) {
+    // Non-blocking — log but don't fail the request
+    console.error("Failed to create connection_request notification:", notifErr.message);
   }
 
   res.status(201).json({
@@ -96,6 +111,18 @@ const respondToRequest = asyncHandler(async (req, res) => {
     const io = req.app.get("io");
     if (io) {
       io.to(connection.sender.toString()).emit("connection_accepted", populatedConnection);
+    }
+
+    // FIXED: notification identity — create notification in DB for acceptance
+    try {
+      await createNotification(io, {
+        recipientId: connection.sender,  // original requester gets notified
+        senderId: req.user._id,          // accepter who triggered the action
+        type: "connection_accepted",
+        postId: null,
+      });
+    } catch (notifErr) {
+      console.error("Failed to create connection_accepted notification:", notifErr.message);
     }
   } else if (action === "reject") {
     connection.status = "rejected";
@@ -210,17 +237,24 @@ const findPeople = asyncHandler(async (req, res) => {
     searchQuery.$or = [{ name: regexQuery }, { username: regexQuery }];
   }
 
+  // FIXED: Added .lean() to return plain JS objects — avoids toObject() errors on malformed docs
   const users = await User.find(searchQuery)
     .select("_id name username avatar bio website isVerified followers")
-    .limit(10);
+    .limit(10)
+    .lean();
 
-  // Format results with isConnected and isPending properties
+  // FIXED: Since .lean() returns plain objects, no need for .toObject(); guard missing fields
   const results = users.map((user) => {
-    const userObj = user.toObject();
     const userIdStr = user._id.toString();
-    userObj.isConnected = acceptedIds.has(userIdStr);
-    userObj.isPending = pendingIds.has(userIdStr);
-    return userObj;
+    return {
+      ...user,
+      name: user.name || "Unknown",
+      username: user.username || "unknown",
+      avatar: user.avatar || "",
+      bio: user.bio || "",
+      isConnected: acceptedIds.has(userIdStr),
+      isPending: pendingIds.has(userIdStr),
+    };
   });
 
   res.status(200).json({

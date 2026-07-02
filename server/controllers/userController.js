@@ -4,35 +4,76 @@ const User = require("../models/User");
 // @desc    Search users by name or username
 // @route   GET /api/users/search
 // @access  Private
+// FIXED: searchUsers with partial name, first name, half username smart fuzzy TikTok-style matching
 const searchUsers = asyncHandler(async (req, res) => {
-  const q = req.query.q;
+  const q = req.query.q?.trim() || "";
   if (!q) {
-    return res.status(200).json({ success: true, users: [] });
+    return res.status(200).json({
+      success: true,
+      users: [],
+      count: 0,
+    });
   }
 
-  const currentUser = await User.findById(req.user._id).select("following");
+  // Split query into parts for smart matching
+  // "sal af" → searches "sal" AND "af" separately
+  const parts = q.split(" ").filter(Boolean);
+
+  // Build OR conditions for each part
+  const conditions = parts.flatMap((part) => [
+    { name: { $regex: part, $options: "i" } },
+    { username: { $regex: part, $options: "i" } },
+    { bio: { $regex: part, $options: "i" } },
+  ]);
 
   const users = await User.find({
-    _id: { $ne: req.user._id },
-    $or: [
-      { name: { $regex: q, $options: "i" } },
-      { username: { $regex: q, $options: "i" } },
-    ],
+    $and: [{ _id: { $ne: req.user._id } }, { $or: conditions }],
   })
-    .select("_id name username avatar isVerified followers following")
-    .limit(20);
+    .select("_id name username avatar bio isVerified followers")
+    .limit(15)
+    .lean();
 
-  const usersWithFollowStatus = users.map((u) => {
-    const userObj = u.toObject();
-    userObj.isFollowing = currentUser.following.some(
-      (id) => id.toString() === u._id.toString()
-    );
-    return userObj;
+  // Score results by relevance
+  const scored = users.map((user) => {
+    let score = 0;
+    const nameLower = user.name?.toLowerCase() || "";
+    const usernameLower = user.username?.toLowerCase() || "";
+    const qLower = q.toLowerCase();
+
+    // Exact match = highest score
+    if (nameLower === qLower) score += 20;
+    if (usernameLower === qLower) score += 20;
+
+    // Starts with query = high score
+    if (nameLower.startsWith(qLower)) score += 15;
+    if (usernameLower.startsWith(qLower)) score += 15;
+
+    // Contains query = medium score
+    if (nameLower.includes(qLower)) score += 10;
+    if (usernameLower.includes(qLower)) score += 10;
+
+    // More followers = more relevant
+    score += Math.min(user.followers?.length || 0, 5);
+
+    // Verified = more relevant
+    if (user.isVerified) score += 3;
+
+    return { ...user, score };
   });
 
-  return res.status(200).json({
+  const result = scored
+    .sort((a, b) => b.score - a.score)
+    .map(({ score, ...user }) => ({
+      ...user,
+      name: user.name || "Unknown",
+      username: user.username || "unknown",
+      avatar: user.avatar || "",
+    }));
+
+  res.status(200).json({
     success: true,
-    users: usersWithFollowStatus,
+    users: result,
+    count: result.length,
   });
 });
 

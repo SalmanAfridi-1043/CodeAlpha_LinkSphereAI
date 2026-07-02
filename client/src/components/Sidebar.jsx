@@ -105,14 +105,16 @@ const Sidebar = () => {
         ]);
         if (profileRes.data.success && postsRes.data.success) {
           setStats({
-            posts:     postsRes.data.totalPosts || 0,
+            // FIX: Use totalPosts from API, fall back to auth context postsCount
+            posts:     postsRes.data.totalPosts || currentUser.postsCount || 0,
             followers: profileRes.data.user.followers?.length || 0,
             following: profileRes.data.user.following?.length || 0,
           });
         }
       } catch {
         setStats({
-          posts:     0,
+          // FIX: Use postsCount from auth context (updated by CreatePost) instead of 0
+          posts:     currentUser.postsCount || 0,
           followers: currentUser.followers?.length || 0,
           following: currentUser.following?.length || 0,
         });
