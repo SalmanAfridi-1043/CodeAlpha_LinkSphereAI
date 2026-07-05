@@ -86,11 +86,11 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.virtual("followersCount").get(function () {
-  return this.followers.length;
+  return this.followers ? this.followers.length : 0;
 });
 
 userSchema.virtual("followingCount").get(function () {
-  return this.following.length;
+  return this.following ? this.following.length : 0;
 });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {

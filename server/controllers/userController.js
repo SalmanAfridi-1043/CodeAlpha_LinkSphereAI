@@ -83,82 +83,85 @@ const searchUsers = asyncHandler(async (req, res) => {
 // @desc    Get suggested users to follow
 // @route   GET /api/users/suggestions
 // @access  Private
-const getSuggestedUsers = asyncHandler(async (req, res) => {
-  const me = await User.findById(req.user._id).select("following bio website location");
-  const followingList = me.following || [];
+const getSuggestedUsers = asyncHandler(
+  async (req, res) => {
+    const me = await User.findById(req.user._id)
+      .select('following')
+      .lean()
 
-  // Step 2 — Get users followed by people I follow (friends of friends)
-  const friendsOfFriends = await User.find({
-    _id: {
-      $nin: [...followingList, req.user._id],
-    },
-    followers: { $in: followingList },
-  })
-    .select("_id name username avatar bio isVerified followers website location")
-    .limit(10);
+    // Build exclusion list
+    // Exclude: myself + people I already follow
+    const excludeIds = [
+      req.user._id,
+      ...(me.following || [])
+    ]
 
-  // Step 3 — Get popular users I don't follow
-  const popularUsers = await User.find({
-    _id: {
-      $nin: [
-        ...followingList,
-        req.user._id,
-        ...friendsOfFriends.map((u) => u._id),
-      ],
-    },
-  })
-    .select("_id name username avatar bio isVerified followers website location")
+    // Step 1: Friends of friends (most relevant)
+    const friendsOfFriends = await User.find({
+      _id: { $nin: excludeIds },
+      followers: { $in: me.following || [] }
+    })
+    .select(
+      '_id name username avatar bio isVerified followers'
+    )
+    .limit(10)
+    .lean()
+
+    // Add their IDs to exclude list
+    const fofIds = friendsOfFriends.map(u => u._id)
+    const fullExclude = [...excludeIds, ...fofIds]
+
+    // Step 2: Popular users not yet excluded
+    const popularUsers = await User.find({
+      _id: { $nin: fullExclude }
+    })
+    .select(
+      '_id name username avatar bio isVerified followers'
+    )
     .sort({ followers: -1 })
-    .limit(5);
+    .limit(5)
+    .lean()
 
-  // Step 4 — Combine + score each user
-  const allCandidates = [...friendsOfFriends, ...popularUsers];
-  const scored = allCandidates.map((user) => {
-    let score = 0;
+    // Combine + score
+    const all = [
+      ...friendsOfFriends,
+      ...popularUsers
+    ]
 
-    // Friend of friend = high relevance
-    if (
-      followingList.some((id) =>
-        user.followers.some((f) => f.toString() === id.toString())
+    const scored = all.map(u => {
+      let score = 0
+      // Friend of friend = high value
+      if ((me.following || []).some(id =>
+        (u.followers || []).some(f =>
+          f.toString() === id.toString()
+        )
+      )) score += 10
+      // Popularity
+      score += Math.min(
+        u.followers?.length || 0, 5
       )
-    ) {
-      score += 10;
-    }
+      // Verified
+      if (u.isVerified) score += 2
+      return { ...u, score }
+    })
 
-    // More followers = more credibility
-    score += Math.min(user.followers.length, 5);
+    const suggestions = scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map(({ score, ...u }) => ({
+        ...u,
+        name: u.name || 'Unknown',
+        username: u.username || 'unknown',
+        avatar: u.avatar || '',
+        isFollowing: false
+      }))
 
-    // Same location = local connection
-    if (
-      me.location &&
-      user.location &&
-      me.location.toLowerCase() === user.location.toLowerCase()
-    ) {
-      score += 3;
-    }
-
-    // Verified = trustworthy
-    if (user.isVerified) {
-      score += 2;
-    }
-
-    return { ...user.toObject(), score };
-  });
-
-  // Step 5 — Sort by score, take top 6
-  const suggestions = scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 6)
-    .map((u) => ({
-      ...u,
-      isFollowing: false,
-      mutualFollowersCount: followingList.filter((id) =>
-        u.followers.some((f) => f.toString() === id.toString())
-      ).length,
-    }));
-
-  return res.status(200).json({ success: true, users: suggestions });
-});
+    res.status(200).json({
+      success: true,
+      users: suggestions
+    })
+  }
+)
 
 // @desc    Refresh suggested users to follow
 // @route   GET /api/users/suggestions/refresh
@@ -226,7 +229,9 @@ const refreshSuggestedUsers = asyncHandler(async (req, res) => {
   });
 
   // Sort by score
-  let suggestions = scored.sort((a, b) => b.score - a.score);
+  let suggestions = scored
+    .sort((a, b) => b.score - a.score)
+    .filter((u) => u._id.toString() !== req.user._id.toString());
 
   // Rotate suggestion list using seed parameter
   const seed = parseInt(req.query.seed) || 0;

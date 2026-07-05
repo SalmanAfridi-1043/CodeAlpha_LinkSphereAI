@@ -10,13 +10,19 @@ export const SocketContext = createContext(null);
 export const SocketProvider = ({ children }) => {
   const { token } = useAuth();
   const socketRef = useRef(null);
+  const isFetching = useRef(false);
   
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingConnectionCount, setPendingConnectionCount] = useState(0);
 
   // Setup/Tear down Socket connection based on auth token
   useEffect(() => {
+    // Clear notifications immediately on token change to prevent stale data between account switches
+    setNotifications([]);
+    setUnreadCount(0);
+
     if (token) {
       // Connect to the socket server
       const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
@@ -52,6 +58,8 @@ export const SocketProvider = ({ children }) => {
 
       // Handle receiving a live notification
       newSocket.on("new_notification", (data) => {
+        if (!data || !data.sender) return;
+
         // FIXED: notification identity — always use data.sender, never auth user
         const senderName = data?.sender?.name || "Someone";
 
@@ -66,8 +74,12 @@ export const SocketProvider = ({ children }) => {
 
         const message = messages[data.type] || `🔔 ${senderName} did something`;
 
-        // Add to notifications list
-        setNotifications((prev) => [data, ...prev]);
+        // Prepend to top — deduplicate by _id to prevent double entries
+        setNotifications((prev) => {
+          const exists = prev.some((n) => n._id === data._id);
+          if (exists) return prev;
+          return [data, ...prev]; // newest always on top
+        });
         setUnreadCount((prev) => prev + 1);
 
         // Show toast with correct person's name
@@ -83,7 +95,7 @@ export const SocketProvider = ({ children }) => {
 
       // FIXED: Handle real-time connection_request socket event
       newSocket.on("connection_request", (data) => {
-        // FIXED: notification identity — use data.sender.name always
+        setPendingConnectionCount((prev) => prev + 1);
         const name = data?.sender?.name || "Someone";
         toast(`🤝 ${name} wants to connect with you!`, {
           style: {
@@ -92,13 +104,10 @@ export const SocketProvider = ({ children }) => {
             border: "1px solid #6C63FF44",
           },
         });
-        setNotifications((prev) => [data, ...prev]);
-        setUnreadCount((prev) => prev + 1);
       });
 
       // FIXED: Handle connection_accepted event — notify sender when their request is accepted
       newSocket.on("connection_accepted", (data) => {
-        // FIXED: notification identity — use data.receiver.name or data.sender.name
         const acceptorName = data?.receiver?.name || data?.sender?.name || "Someone";
         toast.success(`🎉 ${acceptorName} accepted your connection request!`, {
           style: {
@@ -107,9 +116,6 @@ export const SocketProvider = ({ children }) => {
             border: "1px solid #6C63FF44",
           },
         });
-        // Save the acceptance notification into local lists
-        setNotifications((prev) => [data, ...prev]);
-        setUnreadCount((prev) => prev + 1);
       });
 
       return () => {
@@ -135,19 +141,42 @@ export const SocketProvider = ({ children }) => {
     return onlineUsers.some((id) => id.toString() === userId.toString());
   };
 
-  // Fetch recent notifications list from API
-  const fetchNotifications = async () => {
+  const fetchPendingConnectionCount = async () => {
     if (!token) return;
     try {
-      const { data } = await api.get("/notifications?page=1&limit=30");
-      if (data.success) {
-        setNotifications(data.notifications);
-        setUnreadCount(data.unreadCount);
-      }
+      const res = await api.get("/connections/pending");
+      setPendingConnectionCount(res?.data?.count || 0);
     } catch (err) {
-      console.error("Failed to load notifications:", err);
+      console.error("Failed to fetch pending connection count:", err);
     }
   };
+
+  // Fetch recent notifications list from API — always sort newest first
+  const fetchNotifications = async () => {
+    if (!token || isFetching.current) return;
+    isFetching.current = true;
+    try {
+      const res = await api.get("/notifications?limit=50");
+      const list = res?.data?.notifications || [];
+      // Ensure newest-first order on client regardless of server ordering
+      const sorted = [...list].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+      setNotifications(sorted);
+      setUnreadCount(res?.data?.unreadCount ?? 0);
+    } catch (err) {
+      console.error("Notif fetch error:", err);
+    } finally {
+      isFetching.current = false;
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+      fetchPendingConnectionCount();
+    }
+  }, [token]);
 
   // Mark a single notification as read
   const markNotificationRead = async (notificationId) => {
@@ -198,6 +227,8 @@ export const SocketProvider = ({ children }) => {
         onlineUsers,
         notifications,
         unreadCount,
+        pendingConnectionCount,
+        setPendingConnectionCount,
         isUserOnline,
         fetchNotifications,
         markNotificationRead,

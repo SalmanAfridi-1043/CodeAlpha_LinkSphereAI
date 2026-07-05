@@ -73,7 +73,10 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
 
   const menuRef = useRef(null);
 
-  const isOwner = currentUser && post.user && (post.user._id === currentUser._id || post.user === currentUser._id);
+  const isOwner =
+    currentUser &&
+    post.user &&
+    (post.user._id || post.user).toString() === (currentUser._id || currentUser).toString();
 
   // Sync state values if props change
   useEffect(() => {
@@ -616,7 +619,10 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
                           <span>{formatDate(comment.createdAt)}</span>
                           {comment.isEdited && <span>(edited)</span>}
 
-                          {currentUser && comment.user && (comment.user._id === currentUser._id || comment.user === currentUser._id) && (
+                          {currentUser &&
+                            comment.user &&
+                            (comment.user._id || comment.user).toString() ===
+                              (currentUser._id || currentUser).toString() && (
                             <>
                               <button
                                 onClick={() => {

@@ -57,25 +57,20 @@ const Icons = {
 
 const Sidebar = () => {
   const { user: currentUser } = useAuth();
-  const { unreadCount: notificationsCount } = useSocket();
+  const { unreadCount: notificationsCount, pendingConnectionCount } = useSocket();
   const location = useLocation();
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
-  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
   // Fetch pending connections count and unread message count
   const fetchBadgeCounts = async () => {
     if (!currentUser) return;
     try {
-      const [pendingRes, unreadMsgRes] = await Promise.all([
-        api.get("/connections/pending"),
+      const [unreadMsgRes] = await Promise.all([
         api.get("/messages/unread-count"),
       ]);
-      if (pendingRes.data.success) {
-        setPendingRequestsCount(pendingRes.data.count);
-      }
       if (unreadMsgRes.data.success) {
         setUnreadMessagesCount(unreadMsgRes.data.count);
       }
@@ -129,7 +124,7 @@ const Sidebar = () => {
     { label: "Home",          path: "/",                                Icon: Icons.Home    },
     { label: "Explore",       path: "/explore",                         Icon: Icons.Explore },
     { label: "Notifications", path: "/notifications",                   Icon: Icons.Bell,    badge: notificationsCount },
-    { label: "Connect",       path: "/connect",                         Icon: Icons.Connect, badge: pendingRequestsCount },
+    { label: "Connect",       path: "/connect",                         Icon: Icons.Connect, badge: pendingConnectionCount },
     { label: "Messages",      path: "/messages",                        Icon: Icons.Message, badge: unreadMessagesCount },
     { label: "Profile",       path: `/profile/${currentUser.username}`, Icon: Icons.Profile },
     { label: "Create Post",   path: "/create",                          Icon: Icons.Create  },

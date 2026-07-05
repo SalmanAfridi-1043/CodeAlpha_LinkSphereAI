@@ -35,9 +35,11 @@ const toggleLike = asyncHandler(async (req, res) => {
     post.likesCount += 1;
     await post.save();
 
-    if (post.user.toString() !== req.user._id.toString()) {
+    const postOwnerId = (post.user._id || post.user).toString();
+    const currentUserId = req.user._id.toString();
+
+    if (postOwnerId !== currentUserId) {
       const io = req.app.get("io");
-      // FIXED: notification identity — recipient is post owner, sender is liker
       await createNotification(io, {
         recipientId: post.user,
         senderId: req.user._id,

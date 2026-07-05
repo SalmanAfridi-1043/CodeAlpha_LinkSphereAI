@@ -10,7 +10,7 @@ import Spinner from "../components/Spinner";
 
 const Connect = () => {
   const { user: currentUser } = useAuth();
-  const { isUserOnline } = useSocket();
+  const { isUserOnline, pendingConnectionCount, setPendingConnectionCount } = useSocket();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("find"); // "find" | "pending" | "connections"
@@ -20,54 +20,69 @@ const Connect = () => {
   const [searching, setSearching] = useState(false);
 
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [pendingCount, setPendingCount] = useState(0);
   const [loadingPending, setLoadingPending] = useState(false);
 
   const [myConnections, setMyConnections] = useState([]);
   const [loadingConnections, setLoadingConnections] = useState(false);
 
+  // Clear connection and search states on user switch to prevent stale data display
+  useEffect(() => {
+    setSearchResults([]);
+    setPendingRequests([]);
+    setPendingConnectionCount(0);
+    setMyConnections([]);
+    setSearchQuery("");
+  }, [currentUser]);
+
   // FIXED: State for "Connect via Profile Link" paste field
   const [pasteLink, setPasteLink] = useState("");
 
-  // FIXED: Navigate to a profile by pasting their link or typing their username
   const handlePasteLink = () => {
-    const raw = pasteLink.trim();
-    if (!raw) return;
+    const input = pasteLink.trim()
+    if (!input) {
+      toast.error('Please paste a profile link')
+      return
+    }
+
+    // Must contain /profile/ to be valid
+    if (!input.includes('/profile/')) {
+      toast.error(
+        'Please paste a valid profile link — ' +
+        'e.g. linksphereai.vercel.app/profile/salman'
+      )
+      return
+    }
+
     try {
-      // Support full URLs like https://linksphereai.vercel.app/profile/john
-      const url = new URL(raw.includes("http") ? raw : `https://${raw}`);
-      const parts = url.pathname.split("/").filter(Boolean);
-      const profileIndex = parts.indexOf("profile");
-      const username = profileIndex !== -1 ? parts[profileIndex + 1] : null;
-      if (username) {
-        navigate(`/profile/${username}`);
-      } else {
-        toast.error("Could not find a username in that link");
+      const url = new URL(
+        input.startsWith('http')
+          ? input
+          : `https://${input}`
+      )
+      const parts = url.pathname.split('/')
+      const idx = parts.indexOf('profile')
+      const username = parts[idx + 1]
+
+      if (!username) {
+        toast.error('Could not find username in link')
+        return
       }
+      navigate(`/profile/${username}`)
     } catch {
-      // Fallback: treat the input as a plain username (strip leading @)
-      const clean = raw.replace(/^@/, "").trim();
-      if (clean) {
-        navigate(`/profile/${clean}`);
-      } else {
-        toast.error("Invalid link or username");
-      }
+      toast.error('Invalid link format')
     }
   };
 
-  // Fetch pending requests count on mount/interval
-  const fetchPendingRequests = async (silent = false) => {
-    if (!silent) setLoadingPending(true);
+  const fetchPending = async () => {
+    setLoadingPending(true);
     try {
-      const { data } = await api.get("/connections/pending");
-      if (data.success) {
-        setPendingRequests(data.requests);
-        setPendingCount(data.count);
-      }
-    } catch (err) {
-      console.error("Failed to fetch pending requests:", err);
+      const res = await api.get("/connections/pending");
+      setPendingRequests(res?.data?.requests || []);
+      setPendingConnectionCount(res?.data?.count || 0);
+    } catch {
+      setPendingRequests([]);
     } finally {
-      if (!silent) setLoadingPending(false);
+      setLoadingPending(false);
     }
   };
 
@@ -85,26 +100,23 @@ const Connect = () => {
     }
   };
 
-  // Perform search
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault();
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
+  const handleSearch = async (query, searchType) => {
+    if (!query || query.trim().length < 1) {
+      setSearchResults([])
+      return
     }
-
-    setSearching(true);
+    setSearching(true)
     try {
-      const { data } = await api.get(
-        `/connections/find?q=${encodeURIComponent(searchQuery.trim())}&type=${searchType}`
-      );
-      if (data.success) {
-        setSearchResults(data.users);
-      }
+      const res = await api.get(
+        `/connections/find?q=${encodeURIComponent(query)}&type=${searchType}`
+      )
+      setSearchResults(res?.data?.users || [])
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to search people");
+      console.error('Search error:', err)
+      setSearchResults([])
+      toast.error('Search failed — try again')
     } finally {
-      setSearching(false);
+      setSearching(false)
     }
   };
 
@@ -112,7 +124,7 @@ const Connect = () => {
   useEffect(() => {
     if (searchQuery.trim()) {
       const delayDebounce = setTimeout(() => {
-        handleSearch();
+        handleSearch(searchQuery, searchType);
       }, 300);
       return () => clearTimeout(delayDebounce);
     } else {
@@ -123,7 +135,7 @@ const Connect = () => {
   // Load content based on active tab
   useEffect(() => {
     if (activeTab === "pending") {
-      fetchPendingRequests();
+      fetchPending();
     } else if (activeTab === "connections") {
       fetchConnections();
     }
@@ -131,18 +143,28 @@ const Connect = () => {
 
   // Fetch initial pending requests count on tab mount
   useEffect(() => {
-    fetchPendingRequests(true);
+    fetchPending();
   }, []);
 
-  const handleRespond = async (connectionId, action) => {
+  const handleRespond = async (connId, action) => {
     try {
-      const { data } = await api.put(`/connections/respond/${connectionId}`, { action });
-      if (data.success) {
-        toast.success(action === "accept" ? "Connection request accepted!" : "Request declined");
-        fetchPendingRequests();
+      await api.put(
+        `/connections/respond/${connId}`,
+        { action }
+      )
+      toast.success(
+        action === 'accept'
+          ? 'Connection accepted! 🎉'
+          : 'Request declined'
+      )
+      // Immediately re-fetch pending list
+      fetchPending()
+      // If accepted also re-fetch connections
+      if (action === 'accept') {
+        fetchConnections()
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to respond to request");
+      toast.error('Action failed — try again')
     }
   };
 
@@ -164,8 +186,8 @@ const Connect = () => {
             { id: "find", label: "Find People" },
             {
               id: "pending",
-              label: `Pending${pendingCount > 0 ? ` (${pendingCount})` : ""}`,
-              badge: pendingCount,
+              label: `Pending${pendingConnectionCount > 0 ? ` (${pendingConnectionCount})` : ""}`,
+              badge: pendingConnectionCount,
             },
             { id: "connections", label: "Connections" },
           ].map((tab) => (
@@ -193,34 +215,40 @@ const Connect = () => {
             {/* FIXED: Connect via Profile Link card */}
             <div className="flex flex-col gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
               <div>
-                <p className="text-sm font-semibold text-white">Connect via Profile Link</p>
+                <p className="text-sm font-semibold text-white">Paste Profile Link</p>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
-                  Paste a LinkSphereAI profile link or type a @username to visit and connect
+                  Paste a LinkSphereAI profile link to visit and connect
                 </p>
               </div>
-              <div className="flex gap-2">
-                <input
-                  value={pasteLink}
-                  onChange={(e) => setPasteLink(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handlePasteLink()}
-                  placeholder="linksphereai.vercel.app/profile/username  or  @username"
-                  className="flex-1 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
-                  style={{
-                    background: "var(--surface-2)",
-                    border: "1px solid var(--border)",
-                  }}
-                />
-                <button
-                  onClick={handlePasteLink}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#6C63FF] to-[#FF6584] text-white text-xs font-semibold whitespace-nowrap hover:opacity-90 transition"
-                >
-                  Go →
-                </button>
+              <div className="flex gap-2 flex-col">
+                <div className="flex gap-2">
+                  <input
+                    value={pasteLink}
+                    onChange={(e) => setPasteLink(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handlePasteLink()}
+                    placeholder="https://linksphereai.vercel.app/profile/username"
+                    className="flex-1 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary"
+                    style={{
+                      background: "var(--surface-2)",
+                      border: "1px solid var(--border)",
+                    }}
+                  />
+                  <button
+                    onClick={handlePasteLink}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#6C63FF] to-[#FF6584] text-white text-xs font-semibold whitespace-nowrap hover:opacity-90 transition"
+                  >
+                    Go →
+                  </button>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                  ℹ️ Only profile links work here.
+                  Example: linksphereai.vercel.app/profile/salman
+                </p>
               </div>
             </div>
             {/* Search inputs */}
             <div className="flex flex-col gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-sm">
-              <form onSubmit={handleSearch} className="relative flex items-center">
+              <form onSubmit={(e) => { e.preventDefault(); handleSearch(searchQuery, searchType); }} className="relative flex items-center">
                 <input
                   type="text"
                   placeholder={`Search by ${searchType}...`}
@@ -276,67 +304,55 @@ const Connect = () => {
               </div>
             ) : searchResults.length > 0 ? (
               <div className="flex flex-col gap-3">
-                {/* FIXED: Guard all user fields with optional chaining to prevent crashes on malformed data */}
-                {searchResults.map((user) => {
-                  if (!user?._id) return null;
-                  const hasGitHub = user?.website && user.website.includes("github.com");
-                  const shortWebsite = user?.website
-                    ? user.website.replace(/^https?:\/\/(www\.)?/, "")
-                    : "";
+                {searchResults.map(user => (
+                  <div key={user._id}
+                    className="flex items-center justify-between
+                    p-3 rounded-xl hover:bg-[var(--bg-hover)]
+                    transition">
 
-                  return (
+                    {/* Left — avatar + info */}
                     <div
-                      key={user._id}
-                      className="flex items-center justify-between p-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] hover:border-primary/30 transition-all duration-300 shadow-sm"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar
-                          user={user}
-                          size="md"
-                          showOnlineStatus={isUserOnline(user._id)}
-                          showRing={true}
-                        />
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1">
-                            <span className="font-semibold text-sm text-white hover:underline cursor-pointer" onClick={() => navigate(`/profile/${user?.username || user._id}`)}>
-                              {/* FIXED: Guard name with fallback */}
-                              {user?.name || "Unknown User"}
-                            </span>
-                            {user?.isVerified && (
-                              <span className="text-[#6C63FF] text-[10px]">✓</span>
-                            )}
-                          </div>
-                          {/* FIXED: Guard username with fallback */}
-                          <p className="text-xs text-[var(--muted)]">@{user?.username || "unknown"}</p>
-                          {user?.bio && (
-                            <p className="text-[11px] text-[var(--text-secondary)] mt-1 line-clamp-1">
-                              {user.bio}
-                            </p>
-                          )}
-                          {user?.website && (
-                            <a
-                              href={user.website.startsWith("http") ? user.website : `https://${user.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium text-primary hover:underline"
-                            >
-                              <span>🔗</span>
-                              <span className="truncate max-w-[150px]">{hasGitHub ? `GitHub: ${shortWebsite}` : shortWebsite}</span>
-                            </a>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex-shrink-0 ml-3">
-                        <ConnectionButton
-                          targetUserId={user._id}
-                          targetUsername={user?.username}
-                          initialStatus={user?.isConnected ? "accepted" : (user?.isPending ? "pending" : null)}
-                        />
+                      className="flex items-center gap-3 cursor-pointer"
+                      onClick={() => navigate(`/profile/${user.username}`)}>
+                      <Avatar
+                        user={user}
+                        src={user.avatar || ''}
+                        name={user.name || 'U'}
+                        size="md"
+                      />
+                      <div>
+                        <p className="text-[var(--text-main)]
+                          font-semibold text-[14px]">
+                          {user.name || 'Unknown'}
+                        </p>
+                        <p className="text-[var(--text-muted)] text-[12px]">
+                          @{user.username || 'unknown'}
+                        </p>
+                        {user.bio && (
+                          <p className="text-[var(--text-muted)] text-[11px]
+                            truncate max-w-[200px]">
+                            {user.bio}
+                          </p>
+                        )}
+                        {user.website && (
+                          <p className="text-[#6C63FF] text-[11px]">
+                            🔗 {user.website}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
+
+                    {/* Right — connect button */}
+                    <ConnectionButton
+                      targetUserId={user._id}
+                      initialStatus={
+                        user.isConnected ? 'accepted'
+                        : user.isPending ? 'pending'
+                        : null
+                      }
+                    />
+                  </div>
+                ))}
               </div>
             ) : searchQuery.trim() ? (
               <div className="text-center py-12 p-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)]">

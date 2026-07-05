@@ -169,98 +169,120 @@ const getMyConnections = asyncHandler(async (req, res) => {
 // @desc    Get pending received connection requests
 // @route   GET /api/connections/pending
 // @access  Private
-const getPendingRequests = asyncHandler(async (req, res) => {
-  const currentUserId = req.user._id;
+const getPendingRequests = asyncHandler(
+  async (req, res) => {
+    const pending = await Connection.find({
+      receiver: req.user._id,
+      status: 'pending'
+    })
+    .populate('sender',
+      '_id name username avatar bio isVerified'
+    )
+    .sort({ createdAt: -1 })
+    .lean()
 
-  const requests = await Connection.find({
-    receiver: currentUserId,
-    status: "pending",
-  }).populate("sender", "_id name username avatar bio isVerified");
+    // Remove null senders
+    const safe = pending.filter(
+      p => p.sender != null
+    )
 
-  res.status(200).json({
-    success: true,
-    count: requests.length,
-    requests,
-  });
-});
+    res.status(200).json({
+      success: true,
+      requests: safe,
+      count: safe.length
+    })
+  }
+)
 
 // @desc    Find/search people to connect with
 // @route   GET /api/connections/find
 // @access  Private
 const findPeople = asyncHandler(async (req, res) => {
-  const currentUserId = req.user._id;
-  const { q, type } = req.query;
+  const q = req.query.q?.trim() || ''
+  const type = req.query.type || 'all'
 
-  if (!q) {
-    return res.status(200).json({ success: true, users: [] });
+  if (!q || q.length < 1) {
+    return res.status(200).json({
+      success: true,
+      users: [],
+      count: 0
+    })
   }
 
-  // Get all connections involving the current user to find exclusions and pending/connected statuses
-  const allConnections = await Connection.find({
-    $or: [{ sender: currentUserId }, { receiver: currentUserId }],
-  });
-
-  // Map user IDs by connection state
-  const acceptedIds = new Set();
-  const pendingIds = new Set();
-
-  allConnections.forEach((conn) => {
-    const otherUserId =
-      conn.sender.toString() === currentUserId.toString()
-        ? conn.receiver.toString()
-        : conn.sender.toString();
-
-    if (conn.status === "accepted") {
-      acceptedIds.add(otherUserId);
-    } else if (conn.status === "pending") {
-      pendingIds.add(otherUserId);
+  // Build filter based on search type
+  let searchFilter = {}
+  if (type === 'username') {
+    searchFilter = {
+      username: { $regex: q, $options: 'i' }
     }
-  });
-
-  // Build the search query
-  let searchQuery = {
-    _id: { $ne: currentUserId, $nin: Array.from(acceptedIds) },
-  };
-
-  const regexQuery = { $regex: q, $options: "i" };
-
-  if (type === "username") {
-    searchQuery.username = regexQuery;
-  } else if (type === "github") {
-    searchQuery.website = { $regex: `github\\.com.*${q}`, $options: "i" };
-  } else if (type === "website") {
-    searchQuery.website = regexQuery;
-  } else if (type === "name") {
-    searchQuery.name = regexQuery;
+  } else if (type === 'github') {
+    searchFilter = {
+      website: {
+        $regex: `github.*${q}|${q}.*github`,
+        $options: 'i'
+      }
+    }
+  } else if (type === 'website') {
+    searchFilter = {
+      website: { $regex: q, $options: 'i' }
+    }
   } else {
-    // Default to search by name/username
-    searchQuery.$or = [{ name: regexQuery }, { username: regexQuery }];
+    // Default: search name + username + bio
+    searchFilter = {
+      $or: [
+        { name: { $regex: q, $options: 'i' } },
+        { username: { $regex: q, $options: 'i' } },
+        { bio: { $regex: q, $options: 'i' } }
+      ]
+    }
   }
 
-  // FIXED: Added .lean() to return plain JS objects — avoids toObject() errors on malformed docs
-  const users = await User.find(searchQuery)
-    .select("_id name username avatar bio website isVerified followers")
-    .limit(10)
-    .lean();
+  // Get existing connections
+  const myConnections = await Connection.find({
+    $or: [
+      { sender: req.user._id },
+      { receiver: req.user._id }
+    ]
+  }).lean()
 
-  // FIXED: Since .lean() returns plain objects, no need for .toObject(); guard missing fields
-  const results = users.map((user) => {
-    const userIdStr = user._id.toString();
+  const users = await User.find({
+    $and: [
+      { _id: { $ne: req.user._id } },
+      searchFilter
+    ]
+  })
+  .select(
+    '_id name username avatar bio website isVerified followers'
+  )
+  .limit(10)
+  .lean()
+
+  // Map safely — no undefined
+  const result = users.map(user => {
+    const conn = myConnections.find(c =>
+      c.sender?.toString() === user._id.toString() ||
+      c.receiver?.toString() === user._id.toString()
+    )
     return {
-      ...user,
-      name: user.name || "Unknown",
-      username: user.username || "unknown",
-      avatar: user.avatar || "",
-      bio: user.bio || "",
-      isConnected: acceptedIds.has(userIdStr),
-      isPending: pendingIds.has(userIdStr),
-    };
-  });
+      _id: user._id,
+      name: user.name || 'Unknown',
+      username: user.username || 'unknown',
+      avatar: user.avatar || '',
+      bio: user.bio || '',
+      website: user.website || '',
+      isVerified: user.isVerified || false,
+      followersCount: user.followers?.length || 0,
+      isConnected: conn?.status === 'accepted',
+      isPending: conn?.status === 'pending',
+      connectionId: conn?._id || null
+    }
+  })
 
   res.status(200).json({
     success: true,
-    users: results,
-  });
+    users: result,
+    count: result.length
+  })
 });
 
 module.exports = {

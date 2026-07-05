@@ -5,35 +5,30 @@ const Notification = require("../models/Notification");
 // @desc    Get user notifications (paginated)
 // @route   GET /api/notifications
 // @access  Private
-const getNotifications = asyncHandler(async (req, res) => {
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 20;
-  const skip = (page - 1) * limit;
-
-  const notifications = await Notification.find({ recipient: req.user._id })
-    .populate("sender", "_id name username avatar isVerified followers following")
-    .populate("post", "_id content image")
+const getNotifications = asyncHandler(
+  async (req, res) => {
+    const notifications = await Notification.find({
+      recipient: req.user._id
+    })
+    .populate('sender',
+      '_id name username avatar isVerified')
+    .populate('post', '_id content image')
     .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
+    .limit(50)
+    .lean()
 
-  const unreadCount = await Notification.countDocuments({
-    recipient: req.user._id,
-    isRead: false,
-  });
+    // Guard nulls
+    const safe = notifications.filter(
+      n => n.sender != null
+    )
 
-  const totalCount = await Notification.countDocuments({
-    recipient: req.user._id,
-  });
-
-  return res.status(200).json({
-    success: true,
-    notifications,
-    unreadCount,
-    currentPage: page,
-    hasMore: page * limit < totalCount,
-  });
-});
+    return res.status(200).json({
+      success: true,
+      notifications: safe,
+      unreadCount: safe.filter(n => !n.isRead).length
+    })
+  }
+)
 
 // @desc    Mark a single notification as read
 // @route   PUT /api/notifications/:id/read

@@ -56,8 +56,10 @@ const addComment = asyncHandler(async (req, res) => {
     postId: post._id,
   });
 
-  if (post.user.toString() !== req.user._id.toString()) {
-    // FIXED: notification identity — recipient is post owner, sender is commenter
+  const postOwnerId = (post.user._id || post.user).toString();
+  const currentUserId = req.user._id.toString();
+
+  if (postOwnerId !== currentUserId) {
     await createNotification(io, {
       recipientId: post.user,
       senderId: req.user._id,

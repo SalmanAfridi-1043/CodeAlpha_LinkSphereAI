@@ -8,6 +8,7 @@ import PostCard from "../components/PostCard";
 import UserListItem from "../components/UserListItem";
 import Avatar from "../components/Avatar";
 import usePageTitle from "../hooks/usePageTitle";
+import useAuth from "../hooks/useAuth";
 
 const Explore = () => {
   usePageTitle("Explore");
@@ -43,8 +44,13 @@ const Explore = () => {
           api.get("/posts/explore?page=1&limit=15"),
         ]);
         if (suggestionsRes.data.success) {
-          // Fallback to data.suggestions or data.users
-          setSuggestions(suggestionsRes.data.suggestions || suggestionsRes.data.users || []);
+          const list = suggestionsRes.data.suggestions || suggestionsRes.data.users || [];
+          const filtered = list.filter(
+            (u) =>
+              (u?._id || u).toString() !==
+              (currentUser?._id || currentUser || "").toString()
+          );
+          setSuggestions(filtered);
         }
         if (exploreRes.data.success) {
           setExplorePosts(exploreRes.data.posts || []);

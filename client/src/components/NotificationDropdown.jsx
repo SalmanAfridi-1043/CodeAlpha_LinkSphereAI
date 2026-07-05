@@ -21,7 +21,7 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
     if (isOpen) {
       fetchNotifications();
     }
-  }, [isOpen, fetchNotifications]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

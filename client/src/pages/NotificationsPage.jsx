@@ -28,8 +28,13 @@ const NotificationsPage = () => {
 
     if (notification.type === "follow") {
       navigate(`/profile/${notification.sender?.username}`);
+    } else if (
+      notification.type === "connection_request" ||
+      notification.type === "connection_accepted"
+    ) {
+      navigate("/connect");
     } else {
-      // For likes and comments, navigate to home feed
+      // For likes, comments, and mentions, navigate to home feed
       navigate("/");
     }
   };
@@ -79,6 +84,14 @@ const NotificationsPage = () => {
               actionText = "commented on your post";
             } else if (notification.type === "follow") {
               actionText = "started following you";
+            } else if (notification.type === "mention") {
+              actionText = "mentioned you in a post";
+            } else if (notification.type === "connection_request") {
+              actionText = "sent you a connection request";
+            } else if (notification.type === "connection_accepted") {
+              actionText = "accepted your connection request";
+            } else {
+              actionText = "performed an action";
             }
 
             return (

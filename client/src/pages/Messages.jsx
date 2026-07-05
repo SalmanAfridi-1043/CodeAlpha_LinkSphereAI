@@ -1,566 +1,471 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import toast from "react-hot-toast";
-import api from "../api/axios";
-import useAuth from "../hooks/useAuth";
-import { useSocket } from "../context/SocketContext";
-import Avatar from "../components/Avatar";
-import Spinner from "../components/Spinner";
+import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import api from '../api/axios'
+import useAuth from '../hooks/useAuth'
+import useSocket from '../hooks/useSocket'
+import Avatar from '../components/Avatar'
+import Spinner from '../components/Spinner'
+import formatDate from '../utils/formatDate'
+import toast from 'react-hot-toast'
 
 const Messages = () => {
-  const { username: routeUsername } = useParams();
-  const { user: currentUser } = useAuth();
-  const { socket, isUserOnline } = useSocket();
-  const navigate = useNavigate();
+  const { user } = useAuth()
+  const { socket } = useSocket()
+  const navigate = useNavigate()
+  const bottomRef = useRef(null)
 
-  const [conversations, setConversations] = useState([]);
-  const [loadingConversations, setLoadingConversations] = useState(true);
-  const [conversationsSearch, setConversationsSearch] = useState("");
+  const [conversations, setConversations] = useState([])
+  const [activeConvo, setActiveConvo] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [newMsg, setNewMsg] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
+  const typingTimer = useRef(null)
 
-  const [activeUser, setActiveUser] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [messageText, setMessageText] = useState("");
+  // Fetch conversation list on mount
+  useEffect(() => {
+    fetchConversations()
+  }, [])
 
-  const [isTyping, setIsTyping] = useState(false);
-  const [isOtherTyping, setIsOtherTyping] = useState(false);
-
-  const messagesEndRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
-
-  // Fetch all conversations
-  const fetchConversations = async (silent = false) => {
-    if (!silent) setLoadingConversations(true);
+  const fetchConversations = async () => {
     try {
-      const { data } = await api.get("/messages");
-      if (data.success) {
-        setConversations(data.conversations);
-      }
-    } catch (err) {
-      console.error("Failed to fetch conversations:", err);
+      const res = await api.get('/messages')
+      setConversations(res?.data?.conversations || [])
+    } catch {
+      setConversations([])
     } finally {
-      if (!silent) setLoadingConversations(false);
+      setLoading(false)
     }
-  };
+  }
 
-  // Scroll to bottom helper
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isOtherTyping]);
-
-  // Load conversations on mount
-  useEffect(() => {
-    fetchConversations();
-  }, [routeUsername]);
-
-  // Handle active user lookup/change when route param username updates
-  useEffect(() => {
-    if (!routeUsername) {
-      setActiveUser(null);
-      setMessages([]);
-      return;
+  // Open a conversation
+  const openConversation = async (convo) => {
+    setActiveConvo(convo)
+    try {
+      const res = await api.get(
+        `/messages/${convo.user._id}`
+      )
+      setMessages(res?.data?.messages || [])
+      // Mark as read
+      setConversations(prev => prev.map(c =>
+        c.user._id === convo.user._id
+          ? { ...c, unreadCount: 0 }
+          : c
+      ))
+    } catch {
+      setMessages([])
     }
+  }
 
-    const loadActiveUser = async () => {
-      setLoadingMessages(true);
-      try {
-        // Fetch target user profile details
-        const { data: profileData } = await api.get(`/posts/profile/${routeUsername}`);
-        if (profileData.success && profileData.user) {
-          const targetUser = profileData.user;
-          setActiveUser(targetUser);
-
-          // Fetch messages
-          const { data: msgData } = await api.get(`/messages/${targetUser._id}`);
-          if (msgData.success) {
-            setMessages(msgData.messages);
-
-            // Mark read locally and trigger conversation reload to clear badge counts
-            setConversations((prev) =>
-              prev.map((c) =>
-                c.user._id.toString() === targetUser._id.toString()
-                  ? { ...c, unreadCount: 0 }
-                  : c
-              )
-            );
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load active conversation:", err);
-        toast.error("Failed to load conversation details");
-        navigate("/messages");
-      } finally {
-        setLoadingMessages(false);
-      }
-    };
-
-    loadActiveUser();
-  }, [routeUsername, navigate]);
-
-  // Handle real-time socket events
+  // Scroll to bottom on new message
   useEffect(() => {
-    if (!socket) return;
+    bottomRef.current?.scrollIntoView({
+      behavior: 'smooth'
+    })
+  }, [messages])
 
-    const handleNewMessage = (message) => {
-      // If the message is for the currently open conversation
+  // Socket listeners
+  useEffect(() => {
+    if (!socket) return
+
+    socket.on('new_message', (msg) => {
+      // If message is for active conversation
       if (
-        activeUser &&
-        (message.sender._id.toString() === activeUser._id.toString() ||
-          message.receiver._id.toString() === activeUser._id.toString())
+        activeConvo &&
+        (msg.sender._id === activeConvo.user._id ||
+         msg.receiver._id === activeConvo.user._id)
       ) {
-        setMessages((prev) => [...prev, message]);
-        // Call API to mark as read immediately
-        api.get(`/messages/${activeUser._id}`).catch(console.error);
-      } else {
-        // Show message notification toast
-        toast(`New message from ${message.sender.name}`, {
-          icon: "💬",
-          onClick: () => navigate(`/messages/${message.sender.username}`),
-          style: {
-            background: "#1E1E2E",
-            color: "#F5F5FF",
-            border: "1px solid #3A3A5E",
-            cursor: "pointer",
-          },
-        });
-        // Reload conversations to update unread badge in side pane
-        fetchConversations(true);
+        setMessages(prev => [...prev, msg])
       }
-    };
+      // Update conversation list
+      fetchConversations()
+    })
 
-    const handleMessagesRead = ({ conversationId }) => {
-      // If the active conversation matches, update isRead for all of my sent messages in state
-      if (activeUser) {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.sender._id.toString() === currentUser._id.toString() ? { ...m, isRead: true } : m
-          )
-        );
+    socket.on('user_typing', ({ senderId }) => {
+      if (activeConvo?.user._id === senderId) {
+        setIsTyping(true)
       }
-    };
+    })
 
-    const handleUserTyping = ({ senderId }) => {
-      if (activeUser && activeUser._id.toString() === senderId.toString()) {
-        setIsOtherTyping(true);
+    socket.on('user_stop_typing', ({ senderId }) => {
+      if (activeConvo?.user._id === senderId) {
+        setIsTyping(false)
       }
-    };
-
-    const handleUserStopTyping = ({ senderId }) => {
-      if (activeUser && activeUser._id.toString() === senderId.toString()) {
-        setIsOtherTyping(false);
-      }
-    };
-
-    socket.on("new_message", handleNewMessage);
-    socket.on("messages_read", handleMessagesRead);
-    socket.on("user_typing", handleUserTyping);
-    socket.on("user_stop_typing", handleUserStopTyping);
+    })
 
     return () => {
-      socket.off("new_message", handleNewMessage);
-      socket.off("messages_read", handleMessagesRead);
-      socket.off("user_typing", handleUserTyping);
-      socket.off("user_stop_typing", handleUserStopTyping);
-    };
-  }, [socket, activeUser, currentUser, navigate]);
-
-  // Send message action
-  const handleSendMessage = async (e) => {
-    if (e) e.preventDefault();
-    if (!messageText.trim() || !activeUser) return;
-
-    const rawText = messageText.trim();
-    setMessageText("");
-
-    // Stop typing socket notification
-    if (socket) {
-      socket.emit("stop_typing", { receiverId: activeUser._id });
-      setIsTyping(false);
+      socket.off('new_message')
+      socket.off('user_typing')
+      socket.off('user_stop_typing')
     }
+  }, [socket, activeConvo])
 
-    // Optimistic message object
-    const tempId = Date.now().toString();
-    const optimisticMessage = {
-      _id: tempId,
-      conversationId: [currentUser._id, activeUser._id].sort().join("_"),
-      sender: {
-        _id: currentUser._id,
-        name: currentUser.name,
-        username: currentUser.username,
-        avatar: currentUser.avatar,
-      },
-      receiver: activeUser,
-      text: rawText,
-      isRead: false,
-      createdAt: new Date().toISOString(),
-    };
+  // Send message
+  const sendMessage = async () => {
+    if (!newMsg.trim() || !activeConvo) return
+    setSending(true)
 
-    setMessages((prev) => [...prev, optimisticMessage]);
+    // Optimistic update
+    const optimistic = {
+      _id: Date.now().toString(),
+      sender: { _id: user._id },
+      receiver: { _id: activeConvo.user._id },
+      text: newMsg,
+      createdAt: new Date(),
+      isOptimistic: true
+    }
+    setMessages(prev => [...prev, optimistic])
+    const msgText = newMsg
+    setNewMsg('')
 
     try {
-      const { data } = await api.post(`/messages/${activeUser._id}`, { text: rawText });
-      if (data.success) {
-        // Replace optimistic message with actual backend populated message
-        setMessages((prev) =>
-          prev.map((msg) => (msg._id === tempId ? data.message : msg))
-        );
-        fetchConversations(true);
-      }
+      const res = await api.post(
+        `/messages/${activeConvo.user._id}`,
+        { text: msgText }
+      )
+      // Replace optimistic with real
+      setMessages(prev => prev.map(m =>
+        m._id === optimistic._id
+          ? res.data.message
+          : m
+      ))
+      fetchConversations()
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send message");
-      // Remove optimistic message on failure
-      setMessages((prev) => prev.filter((msg) => msg._id !== tempId));
+      // Revert on fail
+      setMessages(prev =>
+        prev.filter(m => m._id !== optimistic._id)
+      )
+      toast.error(err?.response?.data?.message
+        || 'Failed to send')
+    } finally {
+      setSending(false)
     }
-  };
+  }
 
-  // Keyboard typing handlers
-  const handleKeyDown = () => {
-    if (!socket || !activeUser) return;
-
-    if (!isTyping) {
-      setIsTyping(true);
-      socket.emit("typing", { receiverId: activeUser._id });
-    }
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      socket.emit("stop_typing", { receiverId: activeUser._id });
-      setIsTyping(false);
-    }, 1500);
-  };
-
-  // Filter local conversation list by name/username search
-  const filteredConversations = conversations.filter((c) => {
-    const q = conversationsSearch.toLowerCase();
-    return (
-      c.user.name.toLowerCase().includes(q) ||
-      c.user.username.toLowerCase().includes(q)
-    );
-  });
-
-  // Date formatting helpers
-  const formatTime = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
-  const formatDateSeparator = (dateStr) => {
-    const d = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    if (d.toDateString() === today.toDateString()) return "Today";
-    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-    return d.toLocaleDateString([], { month: "short", day: "numeric" });
-  };
+  // Typing events
+  const handleTyping = (e) => {
+    setNewMsg(e.target.value)
+    if (!socket || !activeConvo) return
+    socket.emit('typing', {
+      receiverId: activeConvo.user._id
+    })
+    clearTimeout(typingTimer.current)
+    typingTimer.current = setTimeout(() => {
+      socket.emit('stop_typing', {
+        receiverId: activeConvo.user._id
+      })
+    }, 1000)
+  }
 
   return (
-    <div className="w-full h-[calc(100vh-6rem)] min-h-[400px] flex rounded-3xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-xl select-none">
-      
-      {/* ── Left Pane: Conversation List ── */}
-      <div
-        className={`w-full md:w-80 border-r border-[var(--border)] flex flex-col ${
-          routeUsername ? "hidden md:flex" : "flex"
-        }`}
-      >
-        {/* Pane Header */}
-        <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-          <h2 className="text-base font-bold text-white tracking-tight">Messages</h2>
-          <button
-            onClick={() => navigate("/connect")}
-            title="Find new people to message"
-            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[var(--surface-2)] transition"
-            style={{ color: "var(--primary)" }}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-          </button>
+    <div className="flex h-[calc(100vh-4rem)]
+      bg-[var(--bg-main)] overflow-hidden">
+
+      {/* ═══ LEFT — Chat List (30% width) ═══ */}
+      <div className="w-[300px] flex-shrink-0
+        border-r border-[var(--border)]
+        bg-[var(--bg-card)]
+        flex flex-col">
+
+        {/* Header */}
+        <div className="px-4 py-4
+          border-b border-[var(--border)]">
+          <h2 className="text-[var(--text-main)]
+            font-bold text-[18px]">
+            Messages
+          </h2>
+          <p className="text-[var(--text-muted)]
+            text-[12px] mt-0.5">
+            {conversations.length} conversation
+            {conversations.length !== 1 ? 's' : ''}
+          </p>
         </div>
 
-        {/* Conversation List Search */}
-        <div className="p-3">
-          <div className="relative flex items-center">
-            <input
-              type="text"
-              placeholder="Search chats..."
-              value={conversationsSearch}
-              onChange={(e) => setConversationsSearch(e.target.value)}
-              className="input-field w-full text-[11px] rounded-full pl-8 pr-3 py-2 focus:outline-none"
-              style={{
-                background: "var(--surface-2)",
-                border: "1px solid var(--border)",
-              }}
-            />
-            <span className="absolute left-2.5 text-[var(--muted)]">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8" strokeWidth="2" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" strokeWidth="2" />
-              </svg>
-            </span>
-          </div>
-        </div>
-
-        {/* Conversations Scroll Box */}
-        <div className="flex-1 overflow-y-auto divide-y divide-[var(--border)]/20">
-          {loadingConversations ? (
-            <div className="flex justify-center py-10">
-              <Spinner size="sm" color="var(--primary)" />
+        {/* List */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="md" />
             </div>
-          ) : filteredConversations.length > 0 ? (
-            filteredConversations.map((conn) => {
-              const isActive = routeUsername && routeUsername.toLowerCase() === conn.user.username.toLowerCase();
-              return (
-                <div
-                  key={conn.user._id}
-                  onClick={() => navigate(`/messages/${conn.user.username}`)}
-                  className={`flex items-center gap-3 p-3.5 cursor-pointer relative transition ${
-                    isActive
-                      ? "bg-gradient-to-r from-[#6C63FF]/15 to-[#FF6584]/5"
-                      : "hover:bg-[var(--surface-2)]"
-                  }`}
-                >
-                  {/* Left accent line for active chat */}
-                  {isActive && (
-                    <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-[#6C63FF] to-[#FF6584]" />
-                  )}
-
-                  {/* Avatar */}
-                  <div className="flex-shrink-0">
-                    <Avatar
-                      user={conn.user}
-                      size="sm"
-                      showOnlineStatus={isUserOnline(conn.user._id)}
-                      showRing={true}
-                    />
-                  </div>
-
-                  {/* Text previews */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-white truncate max-w-[120px]">
-                        {conn.user.name}
-                      </span>
-                      {conn.lastMessage && (
-                        <span className="text-[9px] text-[var(--muted-faint)]">
-                          {formatTime(conn.lastMessage.createdAt)}
-                        </span>
-                      )}
-                    </div>
-                    <p
-                      className={`text-[11px] truncate mt-0.5 leading-tight ${
-                        conn.unreadCount > 0
-                          ? "font-bold text-white"
-                          : "text-[var(--muted)]"
-                      }`}
-                    >
-                      {conn.lastMessage ? conn.lastMessage.text : "No messages yet"}
-                    </p>
-                  </div>
-
-                  {/* Unread badge & online indicators */}
-                  {conn.unreadCount > 0 && (
-                    <span className="flex-shrink-0 w-4 h-4 bg-primary text-white text-[8px] font-bold rounded-full flex items-center justify-center animate-pulse">
-                      {conn.unreadCount}
-                    </span>
-                  )}
-                </div>
-              );
-            })
+          ) : conversations.length === 0 ? (
+            <div className="text-center py-12 px-4">
+              <p className="text-3xl mb-2">💬</p>
+              <p className="text-[var(--text-main)]
+                font-semibold text-[14px]">
+                No conversations yet
+              </p>
+              <p className="text-[var(--text-muted)]
+                text-[12px] mt-1">
+                Connect with people first to message them
+              </p>
+              <button
+                onClick={() => navigate('/connect')}
+                className="mt-3 px-4 py-2 rounded-xl
+                  text-[12px] font-medium
+                  bg-gradient-to-r from-[#6C63FF]
+                  to-[#FF6584] text-white">
+                Find People
+              </button>
+            </div>
           ) : (
-            <div className="text-center py-10 px-4 text-xs font-medium text-[var(--muted)] leading-relaxed">
-              No conversations found.
-              <br />
-              Go to <Link to="/connect" className="text-primary hover:underline font-semibold">Connect</Link> to find friends.
-            </div>
+            conversations.map(convo => (
+              <div
+                key={convo.user._id}
+                onClick={() => openConversation(convo)}
+                className={`flex items-center gap-3
+                  px-4 py-3 cursor-pointer transition
+                  border-l-[3px]
+                  ${activeConvo?.user._id ===
+                    convo.user._id
+                    ? 'bg-[#6C63FF11] border-[#6C63FF]'
+                    : 'border-transparent hover:bg-[var(--bg-hover)]'
+                  }`}>
+
+                {/* Avatar */}
+                <div className="relative flex-shrink-0">
+                  <Avatar
+                    user={convo.user}
+                    src={convo.user.avatar}
+                    name={convo.user.name}
+                    size="md"
+                    userId={convo.user._id}
+                    showOnlineStatus={true}
+                  />
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center
+                    justify-between">
+                    <p className={`text-[14px] truncate
+                      ${convo.unreadCount > 0
+                        ? 'font-bold text-[var(--text-main)]'
+                        : 'font-medium text-[var(--text-main)]'
+                      }`}>
+                      {convo.user.name}
+                    </p>
+                    {convo.lastMessage && (
+                      <p className="text-[10px]
+                        text-[var(--text-muted)]
+                        flex-shrink-0 ml-1">
+                        {formatDate(
+                          convo.lastMessage.createdAt
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <p className={`text-[12px] truncate
+                    ${convo.unreadCount > 0
+                      ? 'text-[var(--text-main)] font-medium'
+                      : 'text-[var(--text-muted)]'
+                    }`}>
+                    {convo.lastMessage
+                      ? convo.lastMessage.sender?.toString()
+                          === user._id?.toString()
+                        ? `You: ${convo.lastMessage.text}`
+                        : convo.lastMessage.text
+                      : 'No messages yet'
+                    }
+                  </p>
+                </div>
+
+                {/* Unread badge */}
+                {convo.unreadCount > 0 && (
+                  <span className="flex-shrink-0
+                    bg-[#6C63FF] text-white text-[10px]
+                    font-bold rounded-full w-5 h-5
+                    flex items-center justify-center">
+                    {convo.unreadCount}
+                  </span>
+                )}
+              </div>
+            ))
           )}
         </div>
       </div>
 
-      {/* ── Right Pane: Chat Window ── */}
-      <div
-        className={`flex-1 flex flex-col h-full bg-[#0E0E1A]/40 relative ${
-          !routeUsername ? "hidden md:flex" : "flex"
-        }`}
-      >
-        {loadingMessages ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Spinner size="md" color="var(--primary)" />
-          </div>
-        ) : activeUser ? (
-          <>
-            {/* Chat Window Header */}
-            <div
-              className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between z-10"
-              style={{ background: "var(--glass-bg)", backdropFilter: "blur(12px)" }}
-            >
-              {/* Back button (Mobile only) */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigate("/messages")}
-                  className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[var(--surface-2)] transition text-[var(--muted)]"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                  </svg>
-                </button>
+      {/* ═══ RIGHT — Chat Window (70% width) ═══ */}
+      <div className="flex-1 flex flex-col
+        bg-[var(--bg-main)] min-w-0">
 
-                {/* Avatar & User meta */}
-                <div className="flex items-center gap-2.5">
-                  <Avatar
-                    user={activeUser}
-                    size="sm"
-                    showOnlineStatus={isUserOnline(activeUser._id)}
-                    showRing={true}
-                  />
-                  <div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold text-xs text-white">
-                        {activeUser.name}
-                      </span>
-                      {activeUser.isVerified && (
-                        <span className="text-[#6C63FF] text-[10px]">✓</span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-[var(--muted)]">@{activeUser.username}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <Link
-                to={`/profile/${activeUser.username}`}
-                className="px-3.5 py-1.5 text-[11px] font-bold text-[var(--primary)] border border-primary/20 hover:border-primary/40 rounded-xl hover:bg-primary/5 transition"
-              >
-                View Profile
-              </Link>
-            </div>
-
-            {/* Messages Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.length > 0 ? (
-                messages.map((msg, index) => {
-                  const isMe = msg.sender._id.toString() === currentUser._id.toString();
-                  const showSeparator =
-                    index === 0 ||
-                    formatDateSeparator(msg.createdAt) !==
-                      formatDateSeparator(messages[index - 1].createdAt);
-
-                  return (
-                    <div key={msg._id} className="flex flex-col">
-                      {/* Date Separator */}
-                      {showSeparator && (
-                        <div className="text-center my-3 text-[10px] uppercase font-bold tracking-widest text-[var(--muted-faint)]">
-                          {formatDateSeparator(msg.createdAt)}
-                        </div>
-                      )}
-
-                      {/* Message Bubble Alignment Wrapper */}
-                      <div className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                        <div
-                          className={`max-w-[70%] px-4 py-2.5 shadow-sm relative group`}
-                          style={{
-                            background: isMe
-                              ? "linear-gradient(135deg, #6C63FF, #8B5CF6)"
-                              : "var(--surface-2)",
-                            color: isMe ? "#FFFFFF" : "var(--text)",
-                            border: isMe ? "none" : "1px solid var(--border)",
-                            borderRadius: isMe
-                              ? "20px 20px 4px 20px"
-                              : "20px 20px 20px 4px",
-                          }}
-                        >
-                          {/* Message Text */}
-                          <p className="text-[12px] leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-
-                          {/* Hover Timestamp / Status info */}
-                          <div className={`absolute bottom-full mb-1 text-[9px] text-[var(--muted-faint)] opacity-0 group-hover:opacity-100 transition duration-150 whitespace-nowrap ${
-                            isMe ? "right-0" : "left-0"
-                          }`}>
-                            {formatTime(msg.createdAt)}
-                            {isMe && ` · ${msg.isRead ? "Read ✓" : "Sent"}`}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center p-6 text-[var(--muted)]">
-                  <span className="text-3xl mb-2">👋</span>
-                  <p className="font-semibold text-xs text-white">Start the conversation</p>
-                  <p className="text-[11px] mt-1">Send a message to start sharing ideas and collaboration.</p>
-                </div>
-              )}
-
-              {/* Typing indicator */}
-              {isOtherTyping && (
-                <div className="flex justify-start">
-                  <div
-                    className="px-4 py-3 rounded-2xl flex items-center gap-1 border border-[var(--border)]"
-                    style={{ background: "var(--surface-2)" }}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Sticky Input Bar */}
-            <form
-              onSubmit={handleSendMessage}
-              className="p-4 border-t border-[var(--border)] flex items-center gap-3 z-10"
-              style={{ background: "var(--surface)" }}
-            >
-              <input
-                type="text"
-                placeholder={`Message @${activeUser.username}...`}
-                value={messageText}
-                onChange={(e) => setMessageText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="input-field flex-1 text-xs rounded-full px-5 py-3 focus:outline-none"
-                style={{
-                  background: "var(--surface-2)",
-                  border: "1px solid var(--border)",
-                  color: "var(--text)",
-                }}
-              />
-              <button
-                type="submit"
-                disabled={!messageText.trim()}
-                className="w-10 h-10 rounded-full flex items-center justify-center btn-primary disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex-shrink-0 transition"
-              >
-                <svg className="w-4.5 h-4.5 transform rotate-90" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
-                </svg>
-              </button>
-            </form>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 select-none">
-            <span className="text-4xl mb-4">💬</span>
-            <h3 className="text-white font-bold text-sm">Select a Conversation</h3>
-            <p className="text-[var(--muted)] text-xs mt-1 max-w-xs leading-relaxed">
-              Choose a developer from the sidebar list or click connect on their profile to start chat.
+        {!activeConvo ? (
+          /* Empty state */
+          <div className="flex-1 flex flex-col
+            items-center justify-center gap-3">
+            <p className="text-5xl">💬</p>
+            <p className="text-[var(--text-main)]
+              font-semibold text-[18px]">
+              Your Messages
+            </p>
+            <p className="text-[var(--text-muted)]
+              text-[14px] text-center max-w-xs">
+              Select a conversation from the left
+              to start chatting
             </p>
           </div>
+        ) : (
+          <>
+            {/* Chat Header */}
+            <div className="flex items-center gap-3
+              px-5 py-3.5
+              border-b border-[var(--border)]
+              bg-[var(--bg-card)]">
+              <Avatar
+                user={activeConvo.user}
+                src={activeConvo.user.avatar}
+                name={activeConvo.user.name}
+                size="md"
+                userId={activeConvo.user._id}
+                showOnlineStatus={true}
+              />
+              <div>
+                <p className="text-[var(--text-main)]
+                  font-semibold text-[15px]">
+                  {activeConvo.user.name}
+                </p>
+                <p className="text-[var(--text-muted)]
+                  text-[12px]">
+                  @{activeConvo.user.username}
+                </p>
+              </div>
+              <button
+                onClick={() => navigate(
+                  `/profile/${activeConvo.user.username}`
+                )}
+                className="ml-auto text-[12px]
+                  text-[#6C63FF] hover:underline">
+                View Profile →
+              </button>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto
+              px-5 py-4 flex flex-col gap-2">
+              {messages.map((msg, i) => {
+                const isMine = (() => {
+                  // Handle both: populated object OR raw ObjectId
+                  const sid =
+                    typeof msg.sender === 'object'
+                      ? msg.sender?._id?.toString()
+                      : msg.sender?.toString()
+                  return sid === user?._id?.toString()
+                })()
+
+                return (
+                  <div
+                    key={msg._id || i}
+                    className={`flex items-end gap-2 mb-1
+                      ${isMine ? 'flex-row-reverse' : 'flex-row'}`}
+                  >
+                    {/* Avatar */}
+                    <Avatar
+                      user={isMine ? user : activeConvo?.user}
+                      src={isMine
+                        ? user?.avatar
+                        : activeConvo?.user?.avatar}
+                      name={isMine
+                        ? user?.name
+                        : activeConvo?.user?.name}
+                      size="xs"
+                    />
+
+                    {/* Bubble */}
+                    <div className={`
+                      max-w-[60%] px-4 py-2.5 rounded-2xl
+                      text-[14px] leading-relaxed
+                      ${isMine
+                        ? `bg-gradient-to-br from-[#6C63FF]
+                           to-[#8B5CF6] text-white
+                           rounded-br-none`
+                        : `bg-[var(--bg-card)]
+                           text-[var(--text-main)]
+                           border border-[var(--border)]
+                           rounded-bl-none`
+                      }`}>
+                      <p>{msg.text}</p>
+                      <p className={`text-[10px] mt-1
+                        ${isMine
+                          ? 'text-white/60 text-right'
+                          : 'text-[var(--text-muted)]'}`}>
+                        {formatDate(msg.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* Typing indicator */}
+              {isTyping && (
+                <div className="flex items-center gap-2">
+                  <Avatar
+                    user={activeConvo.user}
+                    src={activeConvo.user.avatar}
+                    name={activeConvo.user.name}
+                    size="xs"
+                  />
+                  <div className="bg-[var(--bg-card)]
+                    border border-[var(--border)]
+                    rounded-2xl rounded-bl-sm
+                    px-4 py-2.5 flex gap-1">
+                    {[0,1,2].map(i => (
+                      <div key={i}
+                        className="w-2 h-2 rounded-full
+                          bg-[var(--text-muted)]
+                          animate-bounce"
+                        style={{
+                          animationDelay: `${i*0.15}s`
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Input Bar */}
+            <div className="px-5 py-3
+              border-t border-[var(--border)]
+              bg-[var(--bg-card)]
+              flex items-center gap-3">
+              <input
+                value={newMsg}
+                onChange={handleTyping}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    sendMessage()
+                  }
+                }}
+                placeholder={`Message ${activeConvo.user.name}...`}
+                className="flex-1 bg-[var(--bg-input)]
+                  border border-[var(--border)]
+                  rounded-full px-5 py-2.5
+                  text-[var(--text-main)] text-[14px]
+                  focus:border-[#6C63FF]
+                  focus:ring-2 focus:ring-[#6C63FF22]
+                  outline-none transition"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!newMsg.trim() || sending}
+                className="w-10 h-10 rounded-full
+                  bg-gradient-to-br from-[#6C63FF]
+                  to-[#FF6584] text-white
+                  flex items-center justify-center
+                  hover:shadow-[0_0_16px_#6C63FF55]
+                  disabled:opacity-40 transition
+                  flex-shrink-0">
+                ➤
+              </button>
+            </div>
+          </>
         )}
       </div>
-
     </div>
-  );
-};
+  )
+}
 
-export default Messages;
+export default Messages

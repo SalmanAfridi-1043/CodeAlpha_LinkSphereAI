@@ -1,189 +1,203 @@
-const asyncHandler = require("express-async-handler");
-const Message = require("../models/Message");
-const Connection = require("../models/Connection");
-const User = require("../models/User");
+const asyncHandler = require('express-async-handler')
+const Message = require('../models/Message')
+const Connection = require('../models/Connection')
+const User = require('../models/User')
 
-// @desc    Send a message to a connected user
-// @route   POST /api/messages/:userId
-// @access  Private
+// ─── Helper: get consistent conversation ID ───
+const getConvoId = (id1, id2) => {
+  return [id1.toString(), id2.toString()]
+    .sort()
+    .join('_')
+}
+
+// ─── Send Message ───
 const sendMessage = asyncHandler(async (req, res) => {
-  const senderId = req.user._id;
-  const receiverId = req.params.userId;
-  const { text } = req.body;
+  const senderId = req.user._id
+  const receiverId = req.params.userId
+  const { text } = req.body
 
-  if (!text || !text.trim()) {
-    res.status(400);
-    throw new Error("Message text is required");
+  // Validate text
+  if (!text?.trim()) {
+    res.status(400)
+    throw new Error('Message text is required')
   }
 
-  // Check if they are connected
+  // Must be connected
   const connection = await Connection.findOne({
     $or: [
-      { sender: senderId, receiver: receiverId },
-      { sender: receiverId, receiver: senderId },
-    ],
-    status: "accepted",
-  });
+      { sender: senderId,
+        receiver: receiverId,
+        status: 'accepted' },
+      { sender: receiverId,
+        receiver: senderId,
+        status: 'accepted' }
+    ]
+  })
 
   if (!connection) {
-    res.status(403);
-    throw new Error("You must be connected with this user to send messages");
+    res.status(403)
+    throw new Error(
+      'You must be connected to message this person'
+    )
   }
 
-  const conversationId = Message.getConversationId(senderId, receiverId);
-
+  // Create message with EXACT sender/receiver
   const message = await Message.create({
-    conversationId,
+    conversationId: getConvoId(senderId, receiverId),
     sender: senderId,
     receiver: receiverId,
     text: text.trim(),
-  });
+    isRead: false
+  })
 
-  const populatedMessage = await Message.findById(message._id)
-    .populate("sender", "_id name username avatar isVerified")
-    .populate("receiver", "_id name username avatar isVerified");
+  // Always populate fresh from DB
+  const fresh = await Message
+    .findById(message._id)
+    .populate('sender',
+      '_id name username avatar')
+    .populate('receiver',
+      '_id name username avatar')
+    .lean()
 
-  // Emit to receiver via socket
-  const io = req.app.get("io");
+  // Emit to receiver room
+  const io = req.app.get('io')
   if (io) {
-    io.to(receiverId.toString()).emit("new_message", populatedMessage);
+    io.to(receiverId.toString())
+      .emit('new_message', fresh)
   }
 
   res.status(201).json({
     success: true,
-    message: populatedMessage,
-  });
-});
-
-// @desc    Get conversation messages between current user and target user
-// @route   GET /api/messages/:userId
-// @access  Private
-const getConversation = asyncHandler(async (req, res) => {
-  const currentUserId = req.user._id;
-  const targetUserId = req.params.userId;
-
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 30;
-  const skip = (page - 1) * limit;
-
-  const conversationId = Message.getConversationId(currentUserId, targetUserId);
-
-  // Get total message count in conversation
-  const totalMessages = await Message.countDocuments({ conversationId });
-
-  // Get conversation messages
-  const messages = await Message.find({ conversationId })
-    .sort({ createdAt: 1 })
-    .skip(skip)
-    .limit(limit)
-    .populate("sender", "_id name username avatar isVerified")
-    .populate("receiver", "_id name username avatar isVerified");
-
-  // Mark all unread messages received by me in this conversation as read
-  await Message.updateMany(
-    { conversationId, receiver: currentUserId, isRead: false },
-    { $set: { isRead: true } }
-  );
-
-  // Emit to the other user that their messages have been read
-  const io = req.app.get("io");
-  if (io) {
-    io.to(targetUserId.toString()).emit("messages_read", {
-      conversationId,
-      readerId: currentUserId,
-    });
-  }
-
-  res.status(200).json({
-    success: true,
-    messages,
-    pagination: {
-      total: totalMessages,
-      page,
-      limit,
-      pages: Math.ceil(totalMessages / limit),
-    },
-  });
-});
-
-// @desc    Get all conversations list for the current user
-// @route   GET /api/messages
-// @access  Private
-const getConversationList = asyncHandler(async (req, res) => {
-  const currentUserId = req.user._id;
-
-  // Find all accepted connections
-  const connections = await Connection.find({
-    $or: [{ sender: currentUserId }, { receiver: currentUserId }],
-    status: "accepted",
+    message: fresh
   })
-    .populate("sender", "_id name username avatar isVerified bio")
-    .populate("receiver", "_id name username avatar isVerified bio");
+})
 
-  const conversationList = [];
+// ─── Get Conversation ───
+const getConversation = asyncHandler(
+  async (req, res) => {
+    const myId = req.user._id
+    const otherId = req.params.userId
 
-  for (const conn of connections) {
-    const otherUser =
-      conn.sender._id.toString() === currentUserId.toString()
-        ? conn.receiver
-        : conn.sender;
+    const conversationId =
+      getConvoId(myId, otherId)
 
-    const conversationId = Message.getConversationId(currentUserId, otherUser._id);
+    const messages = await Message
+      .find({ conversationId })
+      .populate('sender',
+        '_id name username avatar')
+      .populate('receiver',
+        '_id name username avatar')
+      .sort({ createdAt: 1 })
+      .lean()
 
-    // Get last message
-    const lastMessage = await Message.findOne({ conversationId })
-      .sort({ createdAt: -1 })
-      .populate("sender", "_id name username avatar")
-      .populate("receiver", "_id name username avatar");
+    // Mark received messages as read
+    await Message.updateMany(
+      {
+        conversationId,
+        receiver: myId,
+        isRead: false
+      },
+      { isRead: true }
+    )
 
-    // Get unread count sent by otherUser to me
-    const unreadCount = await Message.countDocuments({
-      conversationId,
-      receiver: currentUserId,
-      isRead: false,
-    });
-
-    conversationList.push({
-      user: otherUser,
-      lastMessage: lastMessage || null,
-      unreadCount,
-    });
+    res.status(200).json({
+      success: true,
+      messages: messages || []
+    })
   }
+)
 
-  // Sort by the last message's createdAt descending.
-  // If a conversation has no messages, place it at the end.
-  conversationList.sort((a, b) => {
-    if (!a.lastMessage) return 1;
-    if (!b.lastMessage) return -1;
-    return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
-  });
+// ─── Get Conversation List ───
+const getConversationList = asyncHandler(
+  async (req, res) => {
+    const myId = req.user._id
 
-  res.status(200).json({
-    success: true,
-    conversations: conversationList,
-  });
-});
+    // Only accepted connections
+    const connections = await Connection.find({
+      $or: [
+        { sender: myId, status: 'accepted' },
+        { receiver: myId, status: 'accepted' }
+      ]
+    }).lean()
 
-// @desc    Get total unread messages count
-// @route   GET /api/messages/unread-count
-// @access  Private
-const getUnreadCount = asyncHandler(async (req, res) => {
-  const currentUserId = req.user._id;
+    if (!connections.length) {
+      return res.status(200).json({
+        success: true,
+        conversations: []
+      })
+    }
 
-  const count = await Message.countDocuments({
-    receiver: currentUserId,
-    isRead: false,
-  });
+    const list = await Promise.all(
+      connections.map(async (conn) => {
+        // Get the OTHER person
+        const otherId =
+          conn.sender.toString() === myId.toString()
+            ? conn.receiver
+            : conn.sender
 
-  res.status(200).json({
-    success: true,
-    count,
-  });
-});
+        const otherUser = await User
+          .findById(otherId)
+          .select(
+            '_id name username avatar isVerified'
+          )
+          .lean()
+
+        if (!otherUser) return null
+
+        const conversationId =
+          getConvoId(myId, otherId)
+
+        const lastMessage = await Message
+          .findOne({ conversationId })
+          .sort({ createdAt: -1 })
+          .populate('sender', '_id name')
+          .lean()
+
+        const unreadCount =
+          await Message.countDocuments({
+            conversationId,
+            receiver: myId,
+            isRead: false
+          })
+
+        return {
+          user: otherUser,
+          lastMessage: lastMessage || null,
+          unreadCount,
+          conversationId
+        }
+      })
+    )
+
+    const conversations = list
+      .filter(Boolean)
+      .sort((a, b) => {
+        const aT = a.lastMessage?.createdAt || 0
+        const bT = b.lastMessage?.createdAt || 0
+        return new Date(bT) - new Date(aT)
+      })
+
+    res.status(200).json({
+      success: true,
+      conversations
+    })
+  }
+)
+
+// ─── Unread Count ───
+const getUnreadCount = asyncHandler(
+  async (req, res) => {
+    const count = await Message.countDocuments({
+      receiver: req.user._id,
+      isRead: false
+    })
+    res.status(200).json({ success: true, count })
+  }
+)
 
 module.exports = {
   sendMessage,
   getConversation,
   getConversationList,
-  getUnreadCount,
-};
+  getUnreadCount
+}

@@ -60,15 +60,8 @@ const getFeedPosts = asyncHandler(async (req, res) => {
 
   const currentUser = await User.findById(req.user._id);
 
-  // Build feed: own posts + followed users posts
-  const followingIds = currentUser.following || [];
-  const feedUserIds = [...followingIds, req.user._id];
-
-  // If following nobody — show ALL posts (discovery mode)
-  // If following people — show their posts + own posts
-  const query = followingIds.length === 0
-    ? {}  // ← Show everyone's posts when following nobody
-    : { user: { $in: feedUserIds } };
+  // Build feed: always show all posts from all users to ensure no posts are missing for anyone
+  const query = {};
 
   const posts = await Post.find(query)
     .populate("user", "_id name username avatar isVerified followers following")
@@ -257,8 +250,11 @@ const getUserProfile = asyncHandler(async (req, res) => {
     (follower) => follower._id.toString() === req.user._id.toString()
   );
 
+  const postsCount = await Post.countDocuments({ user: user._id });
+
   const userObj = user.toObject();
   userObj.isFollowing = isFollowing;
+  userObj.postsCount = postsCount;
 
   res.status(200).json({
     success: true,

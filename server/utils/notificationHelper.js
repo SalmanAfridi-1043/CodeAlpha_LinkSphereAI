@@ -6,8 +6,14 @@ const createNotification = async (
   io, { recipientId, senderId, type, postId = null }
 ) => {
   try {
+    const getUserId = (idOrObj) => {
+      if (!idOrObj) return "";
+      if (typeof idOrObj === "string") return idOrObj;
+      return (idOrObj._id || idOrObj).toString();
+    };
+
     // Never notify yourself
-    if (recipientId.toString() === senderId.toString()) {
+    if (getUserId(recipientId) === getUserId(senderId)) {
       return null;
     }
 

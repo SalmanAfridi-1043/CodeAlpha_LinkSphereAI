@@ -18,7 +18,7 @@ const ConnectionButton = ({ targetUserId, targetUsername, initialStatus = null }
   if (!currentUser) return null;
 
   // Don't show connection button for oneself
-  if (currentUser._id.toString() === targetUserId.toString()) {
+  if ((currentUser?._id || currentUser || "").toString() === (targetUserId || "").toString()) {
     return null;
   }
 

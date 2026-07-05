@@ -5,11 +5,18 @@ import api from "../api/axios";
 import Spinner from "./Spinner";
 import Avatar from "./Avatar";
 import useSuggestions from "../hooks/useSuggestions";
+import useAuth from "../hooks/useAuth";
 
 const RightPanel = () => {
   const { suggestions, loading, setSuggestions, refresh } = useSuggestions();
+  const { user } = useAuth();
   const [followingIds, setFollowingIds] = useState(new Set());
   const navigate = useNavigate();
+
+  const filtered = suggestions.filter(u =>
+    u._id !== user?._id &&
+    u.username !== user?.username
+  );
 
   const handleFollow = async (userId) => {
     setFollowingIds((prev) => new Set([...prev, userId]));
@@ -71,7 +78,7 @@ const RightPanel = () => {
         >
           {loading ? (
             renderSkeletons()
-          ) : suggestions.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="text-center py-6">
               <p className="text-3xl mb-2">👥</p>
               <p className="text-[var(--text-muted)] text-[13px]" style={{ color: "var(--muted)" }}>
@@ -80,7 +87,7 @@ const RightPanel = () => {
             </div>
           ) : (
             <>
-              {suggestions.map((user) => (
+              {filtered.map((user) => (
                 <div
                   key={user._id}
                   className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[var(--surface-2)] transition cursor-pointer group"
