@@ -62,31 +62,19 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
-  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
-  // Fetch pending connections count and unread message count
-  const fetchBadgeCounts = async () => {
-    if (!currentUser) return;
-    try {
-      const [unreadMsgRes] = await Promise.all([
-        api.get("/messages/unread-count"),
-      ]);
-      if (unreadMsgRes.data.success) {
-        setUnreadMessagesCount(unreadMsgRes.data.count);
-      }
-    } catch (err) {
-      console.error("Failed to load badge counts in Sidebar:", err);
-    }
-  };
-
+  // Fetch unread message count
   useEffect(() => {
     if (!currentUser) return;
-    fetchBadgeCounts();
-
-    const interval = setInterval(() => {
-      fetchBadgeCounts();
-    }, 30000); // refresh every 30s
-
+    const fetchUnread = async () => {
+      try {
+        const res = await api.get('/messages/unread-count');
+        if (res.data.success) setUnreadMessages(res.data.count);
+      } catch { /* silent */ }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
     return () => clearInterval(interval);
   }, [currentUser, location.pathname]);
 
@@ -125,7 +113,7 @@ const Sidebar = () => {
     { label: "Explore",       path: "/explore",                         Icon: Icons.Explore },
     { label: "Notifications", path: "/notifications",                   Icon: Icons.Bell,    badge: notificationsCount },
     { label: "Connect",       path: "/connect",                         Icon: Icons.Connect, badge: pendingConnectionCount },
-    { label: "Messages",      path: "/messages",                        Icon: Icons.Message, badge: unreadMessagesCount },
+    { label: "Messages",      path: "/messages",                        Icon: Icons.Message, badge: unreadMessages },
     { label: "Profile",       path: `/profile/${currentUser.username}`, Icon: Icons.Profile },
     { label: "Create Post",   path: "/create",                          Icon: Icons.Create  },
   ];
@@ -166,8 +154,11 @@ const Sidebar = () => {
 
                 {/* Notification/Connection/Messages badge */}
                 {badge > 0 && (
-                  <span className="flex-shrink-0 bg-red-500 text-white text-[9px] font-bold rounded-full w-[16px] h-[16px] flex items-center justify-center border border-[var(--surface)] animate-pulse">
-                    {badge > 9 ? "9+" : badge}
+                  <span className="relative flex-shrink-0 flex items-center justify-center">
+                    <span className="bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] px-[3px] flex items-center justify-center border border-[var(--surface)] z-10">
+                      {badge > 9 ? "9+" : badge}
+                    </span>
+                    <span className="absolute w-3 h-3 rounded-full bg-red-500 animate-ping opacity-75" />
                   </span>
                 )}
               </>

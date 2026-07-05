@@ -16,6 +16,7 @@ export const SocketProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingConnectionCount, setPendingConnectionCount] = useState(0);
+  const [newConnectionRequest, setNewConnectionRequest] = useState(false);
 
   // Setup/Tear down Socket connection based on auth token
   useEffect(() => {
@@ -96,6 +97,7 @@ export const SocketProvider = ({ children }) => {
       // FIXED: Handle real-time connection_request socket event
       newSocket.on("connection_request", (data) => {
         setPendingConnectionCount((prev) => prev + 1);
+        setNewConnectionRequest(true); // signal Connect.jsx to re-fetch list
         const name = data?.sender?.name || "Someone";
         toast(`🤝 ${name} wants to connect with you!`, {
           style: {
@@ -229,6 +231,8 @@ export const SocketProvider = ({ children }) => {
         unreadCount,
         pendingConnectionCount,
         setPendingConnectionCount,
+        newConnectionRequest,
+        setNewConnectionRequest,
         isUserOnline,
         fetchNotifications,
         markNotificationRead,

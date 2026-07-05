@@ -149,7 +149,8 @@ const getMyConnections = asyncHandler(async (req, res) => {
     status: "accepted",
   })
     .populate("sender", "_id name username avatar isVerified bio")
-    .populate("receiver", "_id name username avatar isVerified bio");
+    .populate("receiver", "_id name username avatar isVerified bio")
+    .sort({ updatedAt: -1 });
 
   // Map to get the "other person" details
   const connectedUsers = connections.map((conn) => {
@@ -158,11 +159,12 @@ const getMyConnections = asyncHandler(async (req, res) => {
     } else {
       return conn.sender;
     }
-  });
+  }).filter(Boolean);
 
   res.status(200).json({
     success: true,
     connections: connectedUsers,
+    count: connectedUsers.length,
   });
 });
 

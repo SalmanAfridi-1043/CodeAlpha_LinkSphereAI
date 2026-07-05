@@ -46,31 +46,22 @@ const ConnectionButton = ({ targetUserId, targetUsername, initialStatus = null }
     }
   };
 
-  const handleMessageRedirect = (e) => {
-    e.stopPropagation();
-    if (targetUsername) {
-      navigate(`/messages/${targetUsername}`);
-    } else {
-      navigate(`/messages`);
-    }
-  };
-
   if (status === "accepted") {
     return (
       <button
-        onClick={handleMessageRedirect}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (targetUsername) navigate(`/messages`);
+          else navigate('/messages');
+        }}
         className="px-4 py-2 text-xs font-semibold rounded-xl border transition-all duration-300 flex items-center justify-center gap-1.5 min-h-[36px]"
         style={{
           borderColor: "var(--primary)",
           color: "var(--primary)",
           background: "rgba(108, 99, 255, 0.08)",
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "rgba(108, 99, 255, 0.15)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "rgba(108, 99, 255, 0.08)";
-        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(108, 99, 255, 0.15)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(108, 99, 255, 0.08)"; }}
       >
         <span>Message</span>
         <span>💬</span>

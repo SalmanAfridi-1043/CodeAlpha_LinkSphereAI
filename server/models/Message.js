@@ -3,8 +3,7 @@ const mongoose = require('mongoose')
 const messageSchema = new mongoose.Schema({
   conversationId: {
     type: String,
-    required: true,
-    index: true
+    required: true
   },
   sender: {
     type: mongoose.Schema.Types.ObjectId,
@@ -20,7 +19,7 @@ const messageSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    maxlength: 500
+    maxlength: 1000
   },
   isRead: {
     type: Boolean,
@@ -28,12 +27,6 @@ const messageSchema = new mongoose.Schema({
   }
 }, { timestamps: true })
 
-// Index for fast conversation fetch
-messageSchema.index({
-  conversationId: 1,
-  createdAt: 1
-})
+messageSchema.index({ conversationId: 1, createdAt: 1 })
 
-module.exports = mongoose.model(
-  'Message', messageSchema
-)
+module.exports = mongoose.model('Message', messageSchema)

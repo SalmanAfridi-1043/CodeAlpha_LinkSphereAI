@@ -10,7 +10,7 @@ import Spinner from "../components/Spinner";
 
 const Connect = () => {
   const { user: currentUser } = useAuth();
-  const { isUserOnline, pendingConnectionCount, setPendingConnectionCount } = useSocket();
+  const { isUserOnline, pendingConnectionCount, setPendingConnectionCount, newConnectionRequest, setNewConnectionRequest } = useSocket();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("find"); // "find" | "pending" | "connections"
@@ -23,6 +23,7 @@ const Connect = () => {
   const [loadingPending, setLoadingPending] = useState(false);
 
   const [myConnections, setMyConnections] = useState([]);
+  const [connectionsCount, setConnectionsCount] = useState(0);
   const [loadingConnections, setLoadingConnections] = useState(false);
 
   // Clear connection and search states on user switch to prevent stale data display
@@ -89,10 +90,9 @@ const Connect = () => {
   const fetchConnections = async () => {
     setLoadingConnections(true);
     try {
-      const { data } = await api.get("/connections");
-      if (data.success) {
-        setMyConnections(data.connections);
-      }
+      const res = await api.get("/connections");
+      setMyConnections(res?.data?.connections || []);
+      setConnectionsCount(res?.data?.count || 0);
     } catch (err) {
       console.error("Failed to fetch connections:", err);
     } finally {
@@ -146,6 +146,14 @@ const Connect = () => {
     fetchPending();
   }, []);
 
+  // Re-fetch pending list whenever a new connection request arrives via socket
+  useEffect(() => {
+    if (newConnectionRequest) {
+      fetchPending();
+      setNewConnectionRequest(false); // reset flag after handling
+    }
+  }, [newConnectionRequest]);
+
   const handleRespond = async (connId, action) => {
     try {
       await api.put(
@@ -189,7 +197,7 @@ const Connect = () => {
               label: `Pending${pendingConnectionCount > 0 ? ` (${pendingConnectionCount})` : ""}`,
               badge: pendingConnectionCount,
             },
-            { id: "connections", label: "Connections" },
+            { id: "connections", label: `Connections${connectionsCount > 0 ? ` (${connectionsCount})` : ""}` },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -481,7 +489,10 @@ const Connect = () => {
                     </div>
 
                     <button
-                      onClick={() => navigate(`/messages/${user.username}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/messages');
+                      }}
                       className="w-full btn-primary py-2 px-4 text-xs font-semibold rounded-xl shadow-md transition flex items-center justify-center gap-1.5"
                     >
                       <span>Message</span>

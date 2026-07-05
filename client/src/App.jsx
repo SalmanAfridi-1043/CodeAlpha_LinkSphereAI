@@ -79,7 +79,7 @@ const App = () => {
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/connect" element={<Connect />} />
                 <Route path="/messages" element={<Messages />} />
-                <Route path="/messages/:username" element={<Messages />} />
+                <Route path="/messages/:userId" element={<Messages />} />
               </Route>
 
               {/* Catch-all route */}
