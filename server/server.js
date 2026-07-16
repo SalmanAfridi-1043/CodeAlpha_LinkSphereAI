@@ -48,11 +48,15 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
+    // In development, allow any localhost port (handles Vite auto-port switching)
+    if (!origin) return callback(null, true);
+    if (process.env.NODE_ENV !== "production" && /^http:\/\/localhost:\d+$/.test(origin)) {
+      return callback(null, true);
     }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
 };
@@ -89,21 +93,32 @@ app.use(cors(corsOptions));
 
 // SECURITY: Safe inline sanitizer — zero external dependencies, never touches req.query.
 // Only cleans req.body strings:
-//   - Strips $ characters (NoSQL injection prevention)
+//   - Strips $ from KEYS only (NoSQL injection prevention — blocks {$where:...}, {$gt:...})
 //   - Strips <script> tags and javascript: URIs (XSS prevention)
 //   - Strips inline event handlers like onerror= onclick= (XSS prevention)
+// NOTE: We do NOT strip $ from values — doing so corrupts passwords and legitimate data.
 const sanitizeInput = (req, res, next) => {
+  const SKIP_VALUE_SANITIZE_KEYS = new Set(["password", "confirmPassword", "currentPassword", "newPassword"]);
+
   const clean = (obj) => {
     if (!obj || typeof obj !== "object") return;
     Object.keys(obj).forEach((key) => {
-      if (typeof obj[key] === "string") {
-        obj[key] = obj[key]
-          .replace(/\$/g, "")
+      // SECURITY: Strip $ from key names to block NoSQL injection operators
+      const safeKey = key.replace(/\$/g, "");
+      if (safeKey !== key) {
+        obj[safeKey] = obj[key];
+        delete obj[key];
+      }
+      const currentKey = safeKey;
+      if (typeof obj[currentKey] === "string") {
+        // Skip sanitizing password fields — stripping characters corrupts them
+        if (SKIP_VALUE_SANITIZE_KEYS.has(currentKey)) return;
+        obj[currentKey] = obj[currentKey]
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
           .replace(/javascript:/gi, "")
           .replace(/on\w+\s*=/gi, "");
-      } else if (typeof obj[key] === "object" && obj[key] !== null) {
-        clean(obj[key]);
+      } else if (typeof obj[currentKey] === "object" && obj[currentKey] !== null) {
+        clean(obj[currentKey]);
       }
     });
   };

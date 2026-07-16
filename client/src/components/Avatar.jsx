@@ -13,6 +13,8 @@ const sizeClasses = {
 
 const Avatar = ({
   user,
+  src,
+  name: nameProp,
   size = "md",
   className = "",
   showOnlineStatus = false,
@@ -26,16 +28,20 @@ const Avatar = ({
     console.warn("useSocket context not available in Avatar:", err);
   }
 
-  const avatarUrl = user?.avatar;
-  const name = user?.name || "?";
+  // Accept either direct src/name props OR a user object — direct props take priority
+  const avatarUrl = src ?? user?.avatar ?? "";
+  const name = nameProp ?? user?.name ?? "?";
 
-  // Get initials (up to 2 letters)
+  // Get initials (up to 2 letters) — safe for null/empty
   const getInitials = (nameStr) => {
-    if (!nameStr) return "?";
+    if (!nameStr || typeof nameStr !== "string" || !nameStr.trim()) return "?";
     const parts = nameStr.trim().split(" ");
     if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
     return (parts[0][0] + (parts[1]?.[0] || "")).toUpperCase();
   };
+
+  // Only treat src as valid if it's a non-empty string
+  const hasValidSrc = avatarUrl && typeof avatarUrl === "string" && avatarUrl.trim() !== "";
 
   const currentSizeClass = sizeClasses[size] || sizeClasses.md;
   const isOnline =
@@ -64,11 +70,11 @@ const Avatar = ({
         }`}
       >
         <div className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center ${
-          avatarUrl 
+          hasValidSrc
             ? "bg-[#1E1E2E]" 
             : "bg-gradient-to-br from-primary to-accent text-white font-bold"
         }`}>
-          {avatarUrl ? (
+          {hasValidSrc ? (
             <img
               src={avatarUrl}
               alt={name}
@@ -95,7 +101,7 @@ const Avatar = ({
         />
       )}
 
-      {user?.isVerified && (
+      {(user?.isVerified) && (
         <span
           className={`absolute top-0 right-0 bg-primary text-white rounded-full flex items-center justify-center border border-[#1E1E2E] z-20 ${
             size === "lg" || size === "xl" ? "w-4 h-4 text-[8px]" : "w-3 h-3 text-[6px]"
