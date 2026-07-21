@@ -641,19 +641,7 @@ const Profile = () => {
               <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-primary to-accent animate-fadeIn" />
             )}
           </button>
-          <button
-            onClick={() => setActiveTab("likes")}
-            className={`py-3 px-5 text-sm font-semibold transition duration-200 whitespace-nowrap relative ${
-              activeTab === "likes"
-                ? "text-primary"
-                : "text-[#A0A0C0] hover:text-white"
-            }`}
-          >
-            Likes
-            {activeTab === "likes" && (
-              <span className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-primary to-accent animate-fadeIn" />
-            )}
-          </button>
+
         </div>
 
         {/* Tab Content */}
@@ -755,18 +743,7 @@ const Profile = () => {
           )
         )}
 
-        {/* Liked Posts Tab */}
-        {activeTab === "likes" && (
-          <div className="bg-[#1E1E2E] border border-[#3A3A5E] rounded-2xl p-8 text-center py-16 flex flex-col items-center justify-center animate-fadeIn select-none">
-            <span className="text-4xl mb-3 select-none">❤️</span>
-            <h3 className="text-white text-base font-bold mb-1">Liked posts</h3>
-            <p className="text-[#A0A0C0] text-xs max-w-xs">
-              {isOwnProfile
-                ? "Posts you've liked will appear here."
-                : `Posts ${profileUser.name} has liked will appear here.`}
-            </p>
-          </div>
-        )}
+
       </div>
     </div>
 
