@@ -83,67 +83,88 @@ const Messages = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-black text-green-400 font-mono text-[13px] overflow-hidden">
+    <div className="flex h-[calc(100vh-4rem)] bg-[var(--bg-main)] overflow-hidden">
 
       {/* LEFT — conversation list */}
-      <div className="w-[260px] flex-shrink-0 border-r border-green-800 flex flex-col">
-        <div className="px-3 py-2 border-b border-green-800 text-green-500">
-          &gt; contacts
+      <div className="w-[300px] flex-shrink-0 border-r border-[var(--border)] bg-[var(--bg-card)] flex flex-col">
+        <div className="px-4 py-4 border-b border-[var(--border)]">
+          <h2 className="text-[var(--text-main)] font-bold text-[16px]">Messages</h2>
         </div>
+
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <p className="px-3 py-2 text-green-700">loading...</p>
+            <div className="flex justify-center py-8">
+              <div className="w-5 h-5 border-2 border-[#6C63FF] border-t-transparent rounded-full animate-spin" />
+            </div>
           ) : conversations.length === 0 ? (
-            <p className="px-3 py-2 text-green-700">no conversations yet</p>
+            <div className="text-center py-10 px-4">
+              <p className="text-3xl mb-2">💬</p>
+              <p className="text-[var(--text-muted)] text-[13px]">No conversations yet</p>
+            </div>
           ) : (
-            conversations.map(c => (
-              <div
-                key={c.user._id}
-                onClick={() => openChat(c.user)}
-                className={`flex items-center gap-2 px-3 py-2 cursor-pointer border-b border-green-900 hover:bg-green-950 ${
-                  active?._id === c.user._id ? 'bg-green-950' : ''
-                }`}
-              >
-                <Avatar src={c.user.avatar} name={c.user.name} size="xs" />
-                <div className="truncate">
-                  <p className="text-green-300 truncate">{c.user.username}</p>
-                  <p className="text-green-700 text-[11px] truncate">{c.lastMessage}</p>
+            <div className="flex flex-col gap-1 p-2">
+              {conversations.map(c => (
+                <div
+                  key={c.user._id}
+                  onClick={() => openChat(c.user)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition border ${
+                    active?._id === c.user._id
+                      ? 'bg-gradient-to-r from-[#6C63FF22] to-[#8B5CF622] border-[#6C63FF44]'
+                      : 'border-transparent hover:bg-[var(--bg-main)]'
+                  }`}
+                >
+                  <Avatar src={c.user.avatar} name={c.user.name} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[var(--text-main)] font-semibold text-[13.5px] truncate">
+                      {c.user.name || c.user.username}
+                    </p>
+                    <p className="text-[var(--text-muted)] text-[12px] truncate">{c.lastMessage}</p>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       </div>
 
       {/* RIGHT — chat window */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-[var(--bg-main)]">
         {!active ? (
-          <div className="flex-1 flex items-center justify-center text-green-700">
-            &gt; select a contact to start chat_
+          <div className="flex-1 flex flex-col items-center justify-center gap-2">
+            <p className="text-4xl">💬</p>
+            <p className="text-[var(--text-muted)] text-[14px]">Select a conversation to start chatting</p>
           </div>
         ) : (
           <>
             {/* header */}
-            <div className="flex items-center gap-2 px-4 py-2 border-b border-green-800">
-              <Avatar src={active.avatar} name={active.name} size="xs" />
-              <p className="text-green-300">@{active.username}</p>
+            <div className="flex-shrink-0 flex items-center gap-3 px-5 py-4 border-b border-[var(--border)] bg-[var(--bg-card)] shadow-sm">
+              <Avatar src={active.avatar} name={active.name} size="md" />
+              <div>
+                <p className="text-[var(--text-main)] font-bold text-[15px]">{active.name || active.username}</p>
+                <p className="text-[var(--text-muted)] text-[12px]">@{active.username}</p>
+              </div>
             </div>
 
             {/* messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-1">
+            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-2">
               {messages.map(msg => {
                 const isMine = msg.sender._id.toString() === user._id.toString()
                 return (
-                  <div key={msg._id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[70%] px-3 py-1.5 rounded ${
+                  <div
+                    key={msg._id}
+                    className={`flex items-end gap-2 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}
+                  >
+                    <Avatar
+                      src={isMine ? user?.avatar : active.avatar}
+                      name={isMine ? user?.name : active.name}
+                      size="xs"
+                    />
+                    <div className={`max-w-[65%] px-4 py-2.5 rounded-2xl text-[14px] ${
                       isMine
-                        ? 'bg-green-900 text-green-200'
-                        : 'bg-green-950 text-green-400 border border-green-800'
+                        ? 'bg-gradient-to-br from-[#6C63FF] to-[#8B5CF6] text-white rounded-br-none'
+                        : 'bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-main)] rounded-bl-none'
                     }`}>
-                      <span className="text-green-600 mr-1">
-                        {isMine ? 'you>' : `${active.username}>`}
-                      </span>
-                      {msg.text}
+                      <p>{msg.text}</p>
                     </div>
                   </div>
                 )
@@ -151,22 +172,21 @@ const Messages = () => {
               <div ref={bottomRef} />
             </div>
 
-            {/* input */}
-            <div className="flex items-center gap-2 px-3 py-3 border-t border-green-800">
-              <span className="text-green-600">$</span>
+            {/* input bar */}
+            <div className="flex-shrink-0 px-4 py-3 border-t border-[var(--border)] bg-[var(--bg-card)] flex items-center gap-3">
               <input
                 value={text}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                placeholder="type message..."
-                className="flex-1 bg-transparent outline-none text-green-300 placeholder-green-800"
+                placeholder={`Message ${active.name || active.username}...`}
+                className="flex-1 bg-[var(--bg-main)] border border-[var(--border)] rounded-full px-5 py-3 text-[var(--text-main)] text-[14px] focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF22] outline-none transition min-w-0"
               />
               <button
                 onClick={sendMessage}
                 disabled={!text.trim()}
-                className="text-green-400 border border-green-700 px-3 py-1 rounded hover:bg-green-900 disabled:opacity-30"
+                className="flex-shrink-0 w-12 h-12 rounded-full text-white text-xl bg-gradient-to-br from-[#6C63FF] to-[#FF6584] shadow-[0_0_20px_#6C63FF55] flex items-center justify-center hover:shadow-[0_0_28px_#6C63FF88] hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
               >
-                send
+                ➤
               </button>
             </div>
           </>
