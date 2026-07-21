@@ -24,20 +24,14 @@ const AppLayout = () => {
 
         {/* Left Sidebar — fixed, always full width, hidden on mobile */}
         <aside
-          className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 hidden md:flex flex-col border-r"
-          style={{
-            background:          "var(--glass-bg)",
-            backdropFilter:      "blur(20px)",
-            WebkitBackdropFilter:"blur(20px)",
-            borderColor:         "var(--glass-border)",
-          }}
+          className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 hidden md:flex flex-col border-r border-[var(--border)] bg-[var(--bg-card)] overflow-y-auto z-30"
         >
           <Sidebar />
         </aside>
 
         {/* Center Content — offset for sidebar on md+, sidebar+right on lg+ */}
-        <main className="flex-1 md:ml-64 lg:mr-80 pt-16 min-h-screen pb-20 md:pb-6">
-          <div className="max-w-[620px] w-full mx-auto px-4 py-6 animate-fadeIn">
+        <main className="flex-1 md:ml-64 lg:mr-80 pt-16 pb-16 md:pb-0 min-h-screen overflow-x-hidden">
+          <div className="max-w-[620px] w-full mx-auto px-3 sm:px-4 py-4 sm:py-6 animate-fadeIn">
             <Outlet />
           </div>
         </main>
@@ -56,13 +50,7 @@ const AppLayout = () => {
 
       {/* Mobile Bottom Navigation */}
       <nav
-        className="fixed bottom-0 left-0 right-0 h-14 z-40 flex md:hidden items-center justify-around px-4"
-        style={{
-          background:          "var(--glass-bg)",
-          backdropFilter:      "blur(20px)",
-          WebkitBackdropFilter:"blur(20px)",
-          borderTop:           "1px solid var(--glass-border)",
-        }}
+        className="fixed bottom-0 left-0 right-0 h-14 bg-[var(--bg-card)]/90 backdrop-blur-md border-t border-[var(--border)] flex md:hidden items-center justify-around px-2 z-40 pb-[env(safe-area-inset-bottom)]"
       >
         <NavLink to="/" className={({ isActive }) => `flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-300 ${isActive ? "bg-gradient-to-br from-[#6C63FF]/25 to-[#FF6584]/10 text-[var(--primary)] scale-105 shadow-[0_0_16px_var(--primary-glow)]" : "text-[var(--muted)] hover:text-[var(--text)]"}`}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>

@@ -1,5 +1,11 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/User");
+const Post = require("../models/Post");
+const Comment = require("../models/Comment");
+const Like = require("../models/Like");
+const Notification = require("../models/Notification");
+const Connection = require("../models/Connection");
+const bcrypt = require("bcryptjs");
 
 // @desc    Search users by name or username
 // @route   GET /api/users/search
@@ -339,6 +345,76 @@ const getFollowing = asyncHandler(async (req, res) => {
   });
 });
 
+const changePassword = asyncHandler(
+  async (req, res) => {
+  const { currentPassword, newPassword }
+    = req.body
+
+  if (!currentPassword || !newPassword) {
+    res.status(400)
+    throw new Error('Both fields required')
+  }
+
+  const user = await User
+    .findById(req.user._id)
+    .select('+password')
+
+  const isMatch = await user
+    .matchPassword(currentPassword)
+  if (!isMatch) {
+    res.status(401)
+    throw new Error('Current password incorrect')
+  }
+
+  user.password = newPassword
+  await user.save()
+
+  res.status(200).json({
+    success: true,
+    message: 'Password changed successfully'
+  })
+})
+
+const deleteAccount = asyncHandler(
+  async (req, res) => {
+  const userId = req.user._id
+
+  // Delete all user data
+  await Post.deleteMany({ user: userId })
+  await Comment.deleteMany({ user: userId })
+  await Like.deleteMany({ user: userId })
+  await Connection.deleteMany({
+    $or: [
+      { sender: userId },
+      { receiver: userId }
+    ]
+  })
+  await Notification.deleteMany({
+    $or: [
+      { recipient: userId },
+      { sender: userId }
+    ]
+  })
+
+  // Remove from others followers/following
+  await User.updateMany(
+    { followers: userId },
+    { $pull: { followers: userId } }
+  )
+  await User.updateMany(
+    { following: userId },
+    { $pull: { following: userId } }
+  )
+
+  // Delete the user
+  await User.findByIdAndDelete(userId)
+
+  res.status(200).json({
+    success: true,
+    message: 'Account deleted'
+  })
+})
+
 module.exports = {
   searchUsers,
   getSuggestedUsers,
@@ -346,4 +422,6 @@ module.exports = {
   updateUserProfile,
   getFollowers,
   getFollowing,
+  changePassword,
+  deleteAccount,
 };

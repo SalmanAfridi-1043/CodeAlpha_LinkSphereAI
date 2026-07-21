@@ -1,39 +1,46 @@
-// VERIFIED: models/Notification.js — no issues found
-const mongoose = require("mongoose");
+const mongoose = require('mongoose')
 
-const notificationSchema = new mongoose.Schema(
-  {
-    recipient: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    sender: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    type: {
-      type: String,
-      enum: ["like", "comment", "follow", "mention", "connection_request", "connection_accepted"],
-      required: true,
-    },
-    post: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Post",
-      default: null,
-    },
-    isRead: {
-      type: Boolean,
-      default: false,
-    },
+const notificationSchema = new mongoose.Schema({
+  recipient: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   },
-  {
-    timestamps: true,
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  type: {
+    type: String,
+    enum: [
+      'like',
+      'comment',
+      'follow',
+      'mention',
+      'new_post',
+      'connection_request',
+      'connection_accepted'
+    ],
+    required: true
+  },
+  post: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post',
+    default: null
+  },
+  isRead: {
+    type: Boolean,
+    default: false
   }
-);
+}, { timestamps: true })
 
-// Index for fast retrieval of notifications for a user in chronological order
-notificationSchema.index({ recipient: 1, createdAt: -1 });
+notificationSchema.index({
+  recipient: 1,
+  createdAt: -1
+})
 
-module.exports = mongoose.model("Notification", notificationSchema);
+module.exports = mongoose.model(
+  'Notification',
+  notificationSchema
+)

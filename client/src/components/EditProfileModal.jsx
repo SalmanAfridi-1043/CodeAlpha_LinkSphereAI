@@ -120,10 +120,9 @@ const EditProfileModal = ({ isOpen = true, profileUser, onClose, onSave }) => {
       />
 
       {/* MODAL */}
-      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center p-0 sm:p-4 pointer-events-none">
         <div
-          className="relative w-full max-w-lg bg-[var(--bg-card)] border border-[#6C63FF33] rounded-[24px] shadow-[0_0_80px_#6C63FF22] flex flex-col pointer-events-auto"
-          style={{ maxHeight: "90vh" }}
+          className="relative w-full sm:max-w-lg bg-[var(--bg-card)] border border-[#6C63FF33] rounded-t-[24px] sm:rounded-[24px] shadow-[0_0_80px_#6C63FF22] flex flex-col pointer-events-auto max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* STICKY HEADER */}

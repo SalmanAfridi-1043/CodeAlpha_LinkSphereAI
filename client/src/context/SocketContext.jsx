@@ -69,6 +69,7 @@ export const SocketProvider = ({ children }) => {
           comment: `💬 ${senderName} commented on your post`,
           follow: `👤 ${senderName} started following you`,
           mention: `🔔 ${senderName} mentioned you`,
+          new_post: `📝 ${senderName} shared a new post`,
           connection_request: `🤝 ${senderName} wants to connect`,
           connection_accepted: `✅ ${senderName} accepted your request`,
         };

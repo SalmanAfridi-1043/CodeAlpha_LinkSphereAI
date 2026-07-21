@@ -300,7 +300,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
 
   // UI UPGRADED: PostCard
   return (
-    <div className="bg-[#12121F] border border-[#2A2A40] rounded-[20px] p-4 mb-4 hover:border-[#3D3D60] hover:shadow-[0_0_30px_rgba(108,99,255,0.11)] transition-all duration-200 relative">
+    <div className="bg-[#12121F] border border-[#2A2A40] rounded-[20px] p-3 sm:p-4 mb-4 hover:border-[#3D3D60] hover:shadow-[0_0_30px_rgba(108,99,255,0.11)] transition-all duration-200 relative">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={handleUserClick}>
@@ -370,25 +370,27 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
         )}
       </div>
 
-      {/* Delete Confirmation Overlay / Banner */}
+      {/* Delete Confirmation Modal */}
       {isDeletingConfirm && (
-        <div className="bg-[#2A1F2D] border border-accent/30 rounded-xl p-3 mt-3 flex items-center justify-between animate-fadeIn">
-          <span className="text-sm text-[#FF6584] font-medium">Delete this post?</span>
-          <div className="flex gap-2">
-            <button
-              onClick={handleDelete}
-              disabled={loading}
-              className="bg-accent hover:bg-accent/80 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition"
-            >
-              {loading ? "Deleting..." : "Yes"}
-            </button>
-            <button
-              onClick={() => setIsDeletingConfirm(false)}
-              disabled={loading}
-              className="bg-[#2A2A3E] hover:bg-[#3A3A5E] text-[#A0A0C0] text-xs px-3 py-1.5 rounded-lg transition"
-            >
-              No
-            </button>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <p className="text-[var(--text-main)] font-bold text-[15px] mb-2">Delete this post?</p>
+            <p className="text-[var(--text-muted)] text-[13px] mb-4">This cannot be undone.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsDeletingConfirm(false)}
+                className="flex-1 py-2 rounded-xl border border-[var(--border)] text-[var(--text-main)] bg-transparent hover:bg-white/5 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={loading}
+                className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition"
+              >
+                {loading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -438,22 +440,21 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
 
       {/* Image */}
       {post.image && (
-        <div className="mt-3 overflow-hidden rounded-[16px] bg-[#0F0F1A]">
+        <div className="mt-3 overflow-hidden rounded-xl bg-[#0F0F1A]">
           <img
             src={post.image}
             alt="Post media"
             onClick={() => setShowFullImage(true)}
-            className="w-full max-h-[500px] object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-300"
+            className="w-full max-h-[300px] sm:max-h-[500px] object-cover cursor-pointer hover:scale-[1.02] transition-transform duration-300"
           />
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center gap-6 border-t border-[#3A3A5E]/40 pt-3 mt-4 select-none">
+      <div className="flex items-center gap-2 sm:gap-4 border-t border-[#3A3A5E]/40 pt-1.5 mt-4 select-none">
         {/* Like Button */}
         <button
           onClick={handleLike}
-          className={`flex items-center gap-2 text-sm transition-all duration-200 group active:scale-[0.97] hover:text-[#FF6584] hover:shadow-[0_0_15px_rgba(255,101,132,0.25)] rounded-lg px-2.5 py-1 ${
+          className={`flex items-center justify-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] min-h-[44px] transition-all duration-200 group active:scale-[0.97] hover:text-[#FF6584] hover:shadow-[0_0_15px_rgba(255,101,132,0.25)] rounded-lg px-2 py-1 ${
             isLiked ? "text-[#FF6584]" : "text-[#A0A0C0]"
           }`}
           aria-label="Like Post"
@@ -479,7 +480,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
         {/* Comment Button */}
         <button
           onClick={handleCommentToggle}
-          className={`flex items-center gap-2 text-sm transition-all duration-200 hover:text-primary hover:shadow-[0_0_15px_rgba(108,99,255,0.25)] rounded-lg px-2.5 py-1 ${
+          className={`flex items-center justify-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] min-h-[44px] transition-all duration-200 hover:text-primary hover:shadow-[0_0_15px_rgba(108,99,255,0.25)] rounded-lg px-2 py-1 ${
             showComments ? "text-primary animate-[heartPop_0.3s_ease]" : "text-[#A0A0C0]"
           }`}
           aria-label="Comment on Post"
@@ -498,7 +499,7 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
         {/* Share Button */}
         <button
           onClick={handleShare}
-          className="flex items-center gap-2 text-[#A0A0C0] text-sm transition duration-200 hover:text-accent hover:shadow-[0_0_15px_rgba(255,101,132,0.25)] rounded-lg px-2.5 py-1"
+          className="flex items-center justify-center gap-1 sm:gap-2 text-[12px] sm:text-[13px] min-h-[44px] text-[#A0A0C0] transition duration-200 hover:text-accent hover:shadow-[0_0_15px_rgba(255,101,132,0.25)] rounded-lg px-2 py-1"
           aria-label="Share Post"
         >
           <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24">

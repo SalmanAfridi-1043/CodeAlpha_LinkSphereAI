@@ -199,9 +199,9 @@ const getPendingRequests = asyncHandler(
 // @desc    Find/search people to connect with
 // @route   GET /api/connections/find
 // @access  Private
-const findPeople = asyncHandler(async (req, res) => {
+const findPeople = asyncHandler(
+  async (req, res) => {
   const q = req.query.q?.trim() || ''
-  const type = req.query.type || 'all'
 
   if (!q || q.length < 1) {
     return res.status(200).json({
@@ -211,69 +211,46 @@ const findPeople = asyncHandler(async (req, res) => {
     })
   }
 
-  // Build filter based on search type
-  let searchFilter = {}
-  if (type === 'username') {
-    searchFilter = {
-      username: { $regex: q, $options: 'i' }
-    }
-  } else if (type === 'github') {
-    searchFilter = {
-      website: {
-        $regex: `github.*${q}|${q}.*github`,
-        $options: 'i'
+  // Search by name OR username only
+  const users = await User.find({
+    $and: [
+      { _id: { $ne: req.user._id } },
+      {
+        $or: [
+          { name: { $regex: q, $options: 'i' } },
+          { username: { $regex: q, $options: 'i' } }
+        ]
       }
-    }
-  } else if (type === 'website') {
-    searchFilter = {
-      website: { $regex: q, $options: 'i' }
-    }
-  } else {
-    // Default: search name + username + bio
-    searchFilter = {
-      $or: [
-        { name: { $regex: q, $options: 'i' } },
-        { username: { $regex: q, $options: 'i' } },
-        { bio: { $regex: q, $options: 'i' } }
-      ]
-    }
-  }
+    ]
+  })
+  .select(
+    '_id name username avatar bio isVerified'
+  )
+  .limit(10)
+  .lean()
 
-  // Get existing connections
-  const myConnections = await Connection.find({
+  // Get my existing connections
+  const myConns = await Connection.find({
     $or: [
       { sender: req.user._id },
       { receiver: req.user._id }
     ]
   }).lean()
 
-  const users = await User.find({
-    $and: [
-      { _id: { $ne: req.user._id } },
-      searchFilter
-    ]
-  })
-  .select(
-    '_id name username avatar bio website isVerified followers'
-  )
-  .limit(10)
-  .lean()
-
-  // Map safely — no undefined
-  const result = users.map(user => {
-    const conn = myConnections.find(c =>
-      c.sender?.toString() === user._id.toString() ||
-      c.receiver?.toString() === user._id.toString()
+  const result = users.map(u => {
+    const conn = myConns.find(c =>
+      c.sender?.toString() ===
+        u._id.toString() ||
+      c.receiver?.toString() ===
+        u._id.toString()
     )
     return {
-      _id: user._id,
-      name: user.name || 'Unknown',
-      username: user.username || 'unknown',
-      avatar: user.avatar || '',
-      bio: user.bio || '',
-      website: user.website || '',
-      isVerified: user.isVerified || false,
-      followersCount: user.followers?.length || 0,
+      _id: u._id,
+      name: u.name || 'Unknown',
+      username: u.username || 'unknown',
+      avatar: u.avatar || '',
+      bio: u.bio || '',
+      isVerified: u.isVerified || false,
       isConnected: conn?.status === 'accepted',
       isPending: conn?.status === 'pending',
       connectionId: conn?._id || null
@@ -285,7 +262,7 @@ const findPeople = asyncHandler(async (req, res) => {
     users: result,
     count: result.length
   })
-});
+})
 
 module.exports = {
   sendRequest,

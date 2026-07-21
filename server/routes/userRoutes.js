@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const protect = require("../middleware/authMiddleware");
-const { searchUsers, getSuggestedUsers, refreshSuggestedUsers, updateUserProfile, getFollowers, getFollowing } = require("../controllers/userController");
+const { searchUsers, getSuggestedUsers, refreshSuggestedUsers, updateUserProfile, getFollowers, getFollowing, changePassword, deleteAccount } = require("../controllers/userController");
 const { upload } = require("../config/cloudinary");
 
 // DEBUGGED: Added PUT /update, GET /:userId/followers, and GET /:userId/following routes.
@@ -21,5 +21,7 @@ router.put(
 );
 router.get("/:userId/followers", protect, getFollowers);
 router.get("/:userId/following", protect, getFollowing);
+router.put("/change-password", protect, changePassword);
+router.delete("/delete-account", protect, deleteAccount);
 
 module.exports = router;

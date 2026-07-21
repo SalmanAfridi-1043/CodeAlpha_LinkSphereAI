@@ -160,23 +160,16 @@ const Navbar = () => {
 
   /* Stat card data */
   const statItems = [
-    { label: "Posts",     value: userStats.posts,     emoji: "📝" },
-    { label: "Followers", value: userStats.followers,  emoji: "👥" },
-    { label: "Following", value: userStats.following,  emoji: "➡️" },
+    { label: "Posts",     value: currentUser?.postsCount || 0,     emoji: "📝" },
+    { label: "Followers", value: currentUser?.followers?.length || 0,  emoji: "👥" },
+    { label: "Following", value: currentUser?.following?.length || 0,  emoji: "➡️" },
   ];
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-50 w-full h-16 select-none"
-      style={{
-        background:          "var(--glass-bg)",
-        backdropFilter:      "blur(24px)",
-        WebkitBackdropFilter:"blur(24px)",
-        borderBottom:        "1px solid var(--glass-border)",
-        boxShadow:           "var(--shadow-sm)",
-      }}
+      className="fixed top-0 left-0 right-0 h-16 z-50 bg-[var(--bg-card)]/80 backdrop-blur-md border-b border-[var(--border)] select-none"
     >
-      <div className="max-w-7xl mx-auto px-4 h-full flex items-center gap-4">
+      <div className="h-full flex items-center justify-between px-3 sm:px-4 max-w-7xl mx-auto">
 
         {/* ── Logo ── */}
         <Link
@@ -207,7 +200,7 @@ const Navbar = () => {
         </div>
 
         {/* ── Right Actions ── */}
-        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+        <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
 
           {/* Create Post — desktop only */}
           <Link
@@ -223,7 +216,7 @@ const Navbar = () => {
             <button
               onClick={() => { setShowStatsDropdown(!showStatsDropdown); setShowUserDropdown(false); setShowNotifications(false); }}
               title="Your Stats"
-              className="navbar-icon-btn flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full transition hover:bg-[var(--bg-hover)]"
               style={{ color: showStatsDropdown ? "var(--primary)" : "var(--muted)" }}
             >
               <StatsIcon />
@@ -291,7 +284,7 @@ const Navbar = () => {
             <button
               onClick={() => { setShowNotifications(!showNotifications); setShowUserDropdown(false); setShowStatsDropdown(false); }}
               title="Notifications"
-              className={`navbar-icon-btn relative flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200 ${unreadCount > 0 ? "animate-[bellPulse_1.5s_ease_infinite]" : ""}`}
+              className={`relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition hover:bg-[var(--bg-hover)] ${unreadCount > 0 ? "animate-[bellPulse_1.5s_ease_infinite]" : ""}`}
               style={{ color: showNotifications ? "var(--primary)" : "var(--muted)" }}
             >
               <BellIcon />
@@ -308,7 +301,7 @@ const Navbar = () => {
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            className="navbar-icon-btn flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-200"
+            className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full transition hover:bg-[var(--bg-hover)]"
             style={{ color: "var(--muted)" }}
           >
             {theme === "dark" ? <SunIcon /> : <MoonIcon />}
@@ -353,7 +346,7 @@ const Navbar = () => {
                 </button>
 
                 <button
-                  onClick={() => { closeAll(); toast("Settings coming soon! ⚙️"); }}
+                  onClick={() => { closeAll(); navigate('/settings'); }}
                   className="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors duration-150 flex items-center gap-2.5"
                   style={{ color: "var(--text)" }}
                   onMouseEnter={e => e.currentTarget.style.background = "var(--surface-2)"}

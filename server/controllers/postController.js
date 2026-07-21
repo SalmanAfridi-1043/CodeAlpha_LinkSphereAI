@@ -2,7 +2,10 @@ const asyncHandler = require("express-async-handler");
 const Post = require("../models/Post");
 const User = require("../models/User");
 const Like = require("../models/Like");
+const Comment = require("../models/Comment");
+const Notification = require("../models/Notification");
 const { extractMentions, notifyMentions } = require("../utils/mentionHelper");
+const createNotification = require("../utils/notificationHelper");
 
 // @desc    Create a new post
 // @route   POST /api/posts
@@ -42,6 +45,27 @@ const createPost = asyncHandler(async (req, res) => {
     senderId: req.user._id,
     postId: post._id,
   });
+
+  // Notify all followers about new post
+  const postAuthor = await User
+    .findById(req.user._id)
+    .select('followers')
+    .lean()
+
+  if (postAuthor?.followers?.length > 0) {
+    // Notify each follower
+    const notifyPromises =
+      postAuthor.followers.map(followerId =>
+        createNotification(io, {
+          recipientId: followerId,
+          senderId: req.user._id,
+          type: 'new_post',
+          postId: post._id
+        })
+      )
+    // Run all notifications in parallel
+    await Promise.all(notifyPromises)
+  }
 
   res.status(201).json({
     success: true,
@@ -209,25 +233,24 @@ const updatePost = asyncHandler(async (req, res) => {
 // @route   DELETE /api/posts/:id
 // @access  Private (owner only)
 const deletePost = asyncHandler(async (req, res) => {
-  const post = await Post.findById(req.params.id);
+  const post = await Post.findById(req.params.id)
 
   if (!post) {
-    res.status(404);
-    throw new Error("Post not found");
+    res.status(404)
+    throw new Error('Post not found')
   }
 
   if (post.user.toString() !== req.user._id.toString()) {
-    res.status(403);
-    throw new Error("Not authorized to delete this post");
+    res.status(403)
+    throw new Error('Not authorized to delete this post')
   }
 
-  await post.deleteOne();
+  await Comment.deleteMany({ post: post._id })
+  await Like.deleteMany({ post: post._id })
+  await Notification.deleteMany({ post: post._id })
+  await post.deleteOne()
 
-  res.status(200).json({
-    success: true,
-    message: "Post deleted successfully",
-    postId: req.params.id,
-  });
+  res.status(200).json({ success: true, message: 'Post deleted' })
 });
 
 // @desc    Get user profile details by username

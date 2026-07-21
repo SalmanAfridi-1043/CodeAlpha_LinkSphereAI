@@ -7,9 +7,8 @@ const Notification = require("../models/Notification");
 // @access  Private
 const getNotifications = asyncHandler(
   async (req, res) => {
-    const notifications = await Notification.find({
-      recipient: req.user._id
-    })
+  const notifications = await Notification
+    .find({ recipient: req.user._id })
     .populate('sender',
       '_id name username avatar isVerified')
     .populate('post', '_id content image')
@@ -17,18 +16,18 @@ const getNotifications = asyncHandler(
     .limit(50)
     .lean()
 
-    // Guard nulls
-    const safe = notifications.filter(
-      n => n.sender != null
-    )
+  const safe = notifications.filter(
+    n => n.sender != null
+  )
 
-    return res.status(200).json({
-      success: true,
-      notifications: safe,
-      unreadCount: safe.filter(n => !n.isRead).length
-    })
-  }
-)
+  res.status(200).json({
+    success: true,
+    notifications: safe,
+    unreadCount: safe.filter(
+      n => !n.isRead
+    ).length
+  })
+})
 
 // @desc    Mark a single notification as read
 // @route   PUT /api/notifications/:id/read

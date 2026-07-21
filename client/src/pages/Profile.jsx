@@ -367,7 +367,7 @@ const Profile = () => {
         {/* Profile Card Shell */}
         <div className="bg-[#12121F] rounded-[20px] border border-[#2A2A40] overflow-hidden mb-6 shadow-xl relative animate-fadeIn">
           {/* Cover Image */}
-          <div className="h-48 md:h-56 bg-gradient-to-r from-primary/30 to-accent/30 relative select-none">
+          <div className="relative h-32 sm:h-48 bg-gradient-to-r from-primary/30 to-accent/30 select-none">
             {profileUser.coverImage ? (
               <img
                 src={profileUser.coverImage}
@@ -387,22 +387,22 @@ const Profile = () => {
             />
 
             {/* Overlapping Avatar */}
-            <div className="absolute -bottom-16 left-6 z-20">
+            <div className="absolute -bottom-10 sm:-bottom-16 left-4 sm:left-6 z-20">
               <Avatar
                 user={profileUser}
                 size="xl"
                 showRing={true}
-                className="border-4 border-[#0A0A14]"
+                className="!w-20 !h-20 sm:!w-32 sm:!h-32 rounded-full border-4 border-[#0A0A14]"
               />
             </div>
           </div>
 
           {/* User Details Section */}
-          <div className="pt-16 pb-6 px-6">
-            <div className="flex justify-between items-start">
+          <div className="pt-12 sm:pt-16 pb-4 sm:pb-6 px-3 sm:px-5">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
-                <div className="flex items-center gap-1.5">
-                  <h1 className="text-2xl font-bold text-white leading-tight">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h1 className="text-[18px] sm:text-[22px] font-bold text-[var(--text-main)] leading-tight">
                     {profileUser.name}
                   </h1>
                   {profileUser.isVerified && (
@@ -420,25 +420,25 @@ const Profile = () => {
 
               {/* Edit or Follow Button (Hover effect unfollow - Part 6) */}
               {isOwnProfile ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
                   <button
                     onClick={() => setShowShareModal(true)}
-                    className="border border-primary/50 hover:border-primary text-primary hover:bg-primary/10 text-xs md:text-sm font-semibold px-4 py-2 rounded-xl transition shadow flex items-center gap-1.5"
+                    className="border border-primary/50 hover:border-primary text-primary hover:bg-primary/10 text-[11px] sm:text-[13px] px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition shadow flex items-center gap-1.5"
                   >
                     🔗 Share Profile
                   </button>
                   <button
                     onClick={handleEditProfileClick}
-                    className="bg-[#2A2A3E] hover:bg-[#3A3A5E] text-white border border-[#3A3A5E] hover:border-primary/50 text-xs md:text-sm font-semibold px-4 py-2 rounded-xl transition shadow"
+                    className="bg-[#2A2A3E] hover:bg-[#3A3A5E] text-white border border-[#3A3A5E] hover:border-primary/50 text-[11px] sm:text-[13px] px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition shadow"
                   >
                     Edit Profile
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap gap-2 mt-2 sm:mt-0">
                   <button
                     onClick={() => setShowShareModal(true)}
-                    className="border border-primary/50 hover:border-primary text-primary hover:bg-primary/10 text-xs md:text-sm font-semibold px-4 py-2 rounded-xl transition shadow flex items-center gap-1.5"
+                    className="border border-primary/50 hover:border-primary text-primary hover:bg-primary/10 text-[11px] sm:text-[13px] px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition shadow flex items-center gap-1.5"
                   >
                     🔗 Share
                   </button>
@@ -447,7 +447,7 @@ const Profile = () => {
                     disabled={followLoading}
                     onMouseEnter={() => setIsFollowHovered(true)}
                     onMouseLeave={() => setIsFollowHovered(false)}
-                    className={`text-xs md:text-sm font-semibold px-5 py-2.5 rounded-xl transition duration-200 shadow-md flex items-center justify-center min-w-[100px] ${
+                    className={`text-[11px] sm:text-[13px] font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition duration-200 shadow-md flex items-center justify-center min-w-[80px] sm:min-w-[100px] ${
                       isFollowing
                         ? isFollowHovered
                           ? "bg-transparent border border-red-500/50 text-red-400"
@@ -567,33 +567,33 @@ const Profile = () => {
             )}
 
             {/* Stats Row (Clickable tabs toggle - Part 6) */}
-            <div className="flex gap-6 mt-6 border-t border-[#3A3A5E]/40 pt-4 select-none">
+            <div className="flex gap-4 sm:gap-6 mt-3 flex-wrap border-t border-[#3A3A5E]/40 pt-4 select-none">
               <div
-                className="flex items-center gap-1 text-sm cursor-pointer group relative pb-1"
+                className="flex items-center gap-1 cursor-pointer group relative pb-1 text-center"
                 onClick={() => setActiveTab("posts")}
               >
-                <span className="font-bold text-white group-hover:gradient-text">{totalPostsCount}</span>
-                <span className="text-[#A0A0C0] group-hover:gradient-text">Posts</span>
+                <span className="font-bold text-white group-hover:gradient-text text-[14px] sm:text-[16px]">{totalPostsCount}</span>
+                <span className="text-[#A0A0C0] group-hover:gradient-text text-[10px] sm:text-[12px]">Posts</span>
                 <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full" />
               </div>
               <div
-                className="flex items-center gap-1 text-sm cursor-pointer group relative pb-1"
+                className="flex items-center gap-1 cursor-pointer group relative pb-1 text-center"
                 onClick={() => setActiveTab("followers")}
               >
-                <span className="font-bold text-white group-hover:gradient-text font-mono">
+                <span className="font-bold text-white group-hover:gradient-text font-mono text-[14px] sm:text-[16px]">
                   {profileUser.followers?.length || 0}
                 </span>
-                <span className="text-[#A0A0C0] group-hover:gradient-text">Followers</span>
+                <span className="text-[#A0A0C0] group-hover:gradient-text text-[10px] sm:text-[12px]">Followers</span>
                 <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full" />
               </div>
               <div
-                className="flex items-center gap-1 text-sm cursor-pointer group relative pb-1"
+                className="flex items-center gap-1 cursor-pointer group relative pb-1 text-center"
                 onClick={() => setActiveTab("following")}
               >
-                <span className="font-bold text-white group-hover:gradient-text font-mono">
+                <span className="font-bold text-white group-hover:gradient-text font-mono text-[14px] sm:text-[16px]">
                   {profileUser.following?.length || 0}
                 </span>
-                <span className="text-[#A0A0C0] group-hover:gradient-text">Following</span>
+                <span className="text-[#A0A0C0] group-hover:gradient-text text-[10px] sm:text-[12px]">Following</span>
                 <span className="absolute bottom-0 left-0 w-0 h-[1px] bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:w-full" />
               </div>
             </div>

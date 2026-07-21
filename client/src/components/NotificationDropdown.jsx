@@ -51,6 +51,7 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
       comment: `${name} commented on your post`,
       follow: `${name} started following you`,
       mention: `${name} mentioned you in a post`,
+      new_post: `${name} shared a new post`,
       connection_request: `${name} sent you a connection request`,
       connection_accepted: `${name} accepted your connection request`,
     };
@@ -64,6 +65,7 @@ const NotificationDropdown = ({ isOpen, onClose }) => {
       comment: "💬",
       follow: "👤",
       mention: "🔔",
+      new_post: "📝",
       connection_request: "🤝",
       connection_accepted: "✅",
     };

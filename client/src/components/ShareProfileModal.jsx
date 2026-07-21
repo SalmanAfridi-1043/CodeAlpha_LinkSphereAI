@@ -91,13 +91,13 @@ const ShareProfileModal = ({ isOpen, onClose, user }) => {
 
   return ReactDOM.createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+      className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-md bg-[#0C0C14] border border-[#6C63FF44] rounded-[24px] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] animate-fadeScale"
+        className="relative w-full sm:max-w-md bg-[#0C0C14] border border-[#6C63FF44] rounded-t-[24px] sm:rounded-[24px] shadow-2xl overflow-y-auto flex flex-col max-h-[90vh] animate-fadeScale"
         style={{
           boxShadow: "0 0 60px rgba(108, 99, 255, 0.25)",
         }}

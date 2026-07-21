@@ -35,11 +35,6 @@ const Icons = {
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
-  Message: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  ),
   Profile: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
@@ -62,21 +57,6 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
-  const [unreadMessages, setUnreadMessages] = useState(0);
-
-  // Fetch unread message count
-  useEffect(() => {
-    if (!currentUser) return;
-    const fetchUnread = async () => {
-      try {
-        const res = await api.get('/messages/unread-count');
-        if (res.data.success) setUnreadMessages(res.data.count);
-      } catch { /* silent */ }
-    };
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 30000);
-    return () => clearInterval(interval);
-  }, [currentUser, location.pathname]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -113,7 +93,6 @@ const Sidebar = () => {
     { label: "Explore",       path: "/explore",                         Icon: Icons.Explore },
     { label: "Notifications", path: "/notifications",                   Icon: Icons.Bell,    badge: notificationsCount },
     { label: "Connect",       path: "/connect",                         Icon: Icons.Connect, badge: pendingConnectionCount },
-    { label: "Messages",      path: "/messages",                        Icon: Icons.Message, badge: unreadMessages },
     { label: "Profile",       path: `/profile/${currentUser.username}`, Icon: Icons.Profile },
     { label: "Create Post",   path: "/create",                          Icon: Icons.Create  },
   ];
@@ -152,7 +131,7 @@ const Sidebar = () => {
                   {label}
                 </span>
 
-                {/* Notification/Connection/Messages badge */}
+                {/* Notification/Connection badge */}
                 {badge > 0 && (
                   <span className="relative flex-shrink-0 flex items-center justify-center">
                     <span className="bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] px-[3px] flex items-center justify-center border border-[var(--surface)] z-10">
