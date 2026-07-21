@@ -184,6 +184,9 @@ app.use("/api/notifications", notificationRoutes);
 const connectionRoutes = require("./routes/connectionRoutes");
 app.use("/api/connections", connectionRoutes);
 
+const messageRoutes = require("./routes/messageRoutes");
+app.use("/api/messages", messageRoutes);
+
 io.on("connection", (socket) => {
   onlineUsers.set(socket.userId, socket.id);
   socket.join(socket.userId);

@@ -468,6 +468,13 @@ const Profile = () => {
                     )}
                   </button>
 
+                  <button
+                    onClick={() => navigate('/messages', { state: { openUser: profileUser } })}
+                    className="text-[11px] sm:text-[13px] font-medium px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-[#6C63FF44] text-[#6C63FF] hover:bg-[#6C63FF11] transition shadow"
+                  >
+                    Message
+                  </button>
+
                   <ConnectionButton
                     targetUserId={profileUser._id}
                     targetUsername={profileUser.username}

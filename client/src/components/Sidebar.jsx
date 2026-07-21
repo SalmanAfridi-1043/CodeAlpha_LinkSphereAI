@@ -35,6 +35,11 @@ const Icons = {
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
+  Messages: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  ),
   Profile: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0">
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
@@ -93,6 +98,7 @@ const Sidebar = () => {
     { label: "Explore",       path: "/explore",                         Icon: Icons.Explore },
     { label: "Notifications", path: "/notifications",                   Icon: Icons.Bell,    badge: notificationsCount },
     { label: "Connect",       path: "/connect",                         Icon: Icons.Connect, badge: pendingConnectionCount },
+    { label: "Messages",      path: "/messages",                        Icon: Icons.Messages },
     { label: "Profile",       path: `/profile/${currentUser.username}`, Icon: Icons.Profile },
     { label: "Create Post",   path: "/create",                          Icon: Icons.Create  },
   ];
