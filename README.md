@@ -21,10 +21,25 @@ A full-stack social networking platform for developers — featuring posts, real
 
 ```
 LinkSphereAI/
+├── README.md
+├── package.json
+├── package-lock.json
+├── .git/
+├── .cursor/
+├── .vscode/
+├── node_modules/
+│
 ├── server/
+│   ├── server.js                 — Express app + Socket.IO setup + entry point
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── .env
+│   ├── uploads/                  — Local upload temp folder
+│   │
 │   ├── config/
 │   │   ├── cloudinary.js         — Cloudinary + Multer upload config
 │   │   └── db.js                 — MongoDB connection via Mongoose
+│   │
 │   ├── controllers/
 │   │   ├── authController.js
 │   │   ├── commentController.js
@@ -35,10 +50,12 @@ LinkSphereAI/
 │   │   ├── notificationController.js
 │   │   ├── postController.js
 │   │   └── userController.js
+│   │
 │   ├── middleware/
 │   │   ├── authMiddleware.js     — JWT verify + blacklist check
 │   │   ├── errorMiddleware.js    — Global error + 404 handlers
 │   │   └── ownershipMiddleware.js — IDOR prevention for posts/comments
+│   │
 │   ├── models/
 │   │   ├── BlacklistedToken.js
 │   │   ├── Comment.js
@@ -49,6 +66,7 @@ LinkSphereAI/
 │   │   ├── Notification.js
 │   │   ├── Post.js
 │   │   └── User.js
+│   │
 │   ├── routes/
 │   │   ├── authRoutes.js
 │   │   ├── commentRoutes.js
@@ -59,28 +77,50 @@ LinkSphereAI/
 │   │   ├── notificationRoutes.js
 │   │   ├── postRoutes.js
 │   │   └── userRoutes.js
+│   │
 │   ├── scripts/
 │   │   ├── testAuth.js           — Manual auth test script
 │   │   └── testPosts.js          — Manual post test script
+│   │
 │   ├── utils/
 │   │   ├── generateToken.js      — JWT sign helper
 │   │   ├── mentionHelper.js      — @mention parsing utility
 │   │   └── notificationHelper.js — DB notification creation + socket emit
-│   ├── uploads/                  — Local upload temp folder
-│   ├── .env
-│   └── server.js                 — Express app + Socket.IO setup + entry point
+│   │
+│   └── node_modules/
 │
 └── client/
+    ├── index.html
+    ├── package.json
+    ├── package-lock.json
+    ├── .env
+    ├── postcss.config.js
+    ├── tailwind.config.js
+    ├── vite.config.js
+    ├── vercel.json
+    ├── README.md
+    ├── dist/
+    │
+    ├── public/
+    │   ├── favicon.svg
+    │   ├── icons.svg
+    │   └── index.html
+    │
     ├── src/
+    │   ├── App.jsx
+    │   ├── main.jsx
+    │   ├── index.css
+    │   │
     │   ├── api/
     │   │   └── axios.js          — Axios instance with base URL + auth header
+    │   │
     │   ├── assets/
-    │   │   └── hero.png
+    │   │   ├── .gitkeep
+    │   │   ├── hero.png
+    │   │   ├── react.svg
+    │   │   └── vite.svg
+    │   │
     │   ├── components/
-    │   │   ├── skeletons/
-    │   │   │   ├── PostCardSkeleton.jsx
-    │   │   │   ├── ProfileSkeleton.jsx
-    │   │   │   └── UserItemSkeleton.jsx
     │   │   ├── AppLayout.jsx
     │   │   ├── Avatar.jsx
     │   │   ├── ConnectionButton.jsx
@@ -97,15 +137,23 @@ LinkSphereAI/
     │   │   ├── Sidebar.jsx
     │   │   ├── Spinner.jsx
     │   │   └── UserListItem.jsx
+    │   │
+    │   ├── components/skeletons/
+    │   │   ├── PostCardSkeleton.jsx
+    │   │   ├── ProfileSkeleton.jsx
+    │   │   └── UserItemSkeleton.jsx
+    │   │
     │   ├── context/
     │   │   ├── AuthContext.jsx
     │   │   ├── SocketContext.jsx
     │   │   └── ThemeContext.jsx
+    │   │
     │   ├── hooks/
     │   │   ├── useAuth.js
     │   │   ├── usePageTitle.js
     │   │   ├── useSocket.js
     │   │   └── useSuggestions.js
+    │   │
     │   ├── pages/
     │   │   ├── Connect.jsx
     │   │   ├── CreatePost.jsx
@@ -115,19 +163,13 @@ LinkSphereAI/
     │   │   ├── Messages.jsx
     │   │   ├── NotificationsPage.jsx
     │   │   ├── Profile.jsx
-    │   │   └── Register.jsx
-    │   ├── utils/
-    │   │   └── formatDate.js
-    │   ├── App.jsx
-    │   ├── index.css
-    │   └── main.jsx
-    ├── public/
-    │   ├── favicon.svg
-    │   ├── icons.svg
-    │   └── index.html
-    ├── .env
-    ├── index.html
-    └── package.json
+    │   │   ├── Register.jsx
+    │   │   └── Settings.jsx
+    │   │
+    │   └── utils/
+    │       └── formatDate.js
+    │
+    └── node_modules/
 ```
 
 ---
