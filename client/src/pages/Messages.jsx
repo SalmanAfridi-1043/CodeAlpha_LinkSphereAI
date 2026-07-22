@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import api from '../api/axios'
 import { useLocation } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useSocket } from '../context/SocketContext'
 import Avatar from '../components/Avatar'
 import { useContext } from 'react'
@@ -78,7 +79,7 @@ const Messages = () => {
       const res = await api.post(`/messages/${active._id}`, { text: body })
       setMessages(prev => [...prev, res.data.message])
     } catch (err) {
-      alert(err?.response?.data?.message || 'Message failed to send')
+      toast.error(err?.response?.data?.message || 'Message failed to send')
     }
   }
 
