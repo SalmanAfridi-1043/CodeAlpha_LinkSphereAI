@@ -366,34 +366,34 @@ const PostCard = ({ post, onDelete, onUpdate }) => {
                 </button>
               </div>
             )}
+
+            {isDeletingConfirm && (
+              <div
+                className="absolute top-8 right-0 z-50 w-[220px] max-w-[80vw] bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl p-3.5 animate-fadeIn"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <p className="text-[var(--text-main)] font-semibold text-[13px] mb-0.5">Delete this post?</p>
+                <p className="text-[var(--text-muted)] text-[11px] mb-3">This cannot be undone.</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setIsDeletingConfirm(false)}
+                    className="flex-1 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-main)] text-[12px] font-medium hover:bg-[rgba(255,255,255,0.05)] transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={loading}
+                    className="flex-1 py-1.5 rounded-lg bg-red-500 text-white text-[12px] font-medium hover:bg-red-600 transition"
+                  >
+                    {loading ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      {/* Delete Confirmation Modal */}
-      {isDeletingConfirm && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fadeIn" onClick={(e) => e.stopPropagation()}>
-          <div className="bg-[var(--bg-card)] rounded-2xl p-6 w-[320px] border border-[var(--border)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <p className="text-[var(--text-main)] font-bold text-[15px] mb-2">Delete this post?</p>
-            <p className="text-[var(--text-muted)] text-[13px] mb-4">This cannot be undone.</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setIsDeletingConfirm(false)}
-                className="flex-1 py-2 rounded-xl border border-[var(--border)] text-[var(--text-main)] bg-transparent hover:bg-white/5 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={loading}
-                className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition"
-              >
-                {loading ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Content */}
       <div className="mt-3">

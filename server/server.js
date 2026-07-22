@@ -10,6 +10,9 @@ const requiredEnvVars = [
   "JWT_SECRET",
   "JWT_EXPIRE",
   "CLIENT_URL",
+  "CLOUDINARY_CLOUD_NAME",
+  "CLOUDINARY_API_KEY",
+  "CLOUDINARY_API_SECRET",
 ];
 const missingVars = requiredEnvVars.filter((v) => !process.env[v]);
 if (missingVars.length > 0) {
@@ -37,8 +40,6 @@ const followRoutes = require("./routes/followRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
-const path = require("path");
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 const server = http.createServer(app);
 
 const allowedOrigins = [

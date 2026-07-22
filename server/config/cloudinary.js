@@ -23,9 +23,15 @@ if (isCloudinaryConfigured) {
 
   storage = new CloudinaryStorage({
     cloudinary,
-    params: {
-      folder: "linksphereai",
-      allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+    params: (req, file) => {
+      const isAvatar = file.fieldname === "avatar" || file.fieldname === "coverImage";
+      return {
+        folder: isAvatar ? "LinkSphereAI/avatars" : "LinkSphereAI/posts",
+        allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+        transformation: isAvatar
+          ? [{ width: 500, height: 500, crop: "limit" }]
+          : [{ width: 1200, height: 1200, crop: "limit" }],
+      };
     },
   });
 } else {

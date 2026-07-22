@@ -6,6 +6,7 @@ const Comment = require("../models/Comment");
 const Notification = require("../models/Notification");
 const { extractMentions, notifyMentions } = require("../utils/mentionHelper");
 const createNotification = require("../utils/notificationHelper");
+const { cloudinary } = require("../config/cloudinary");
 
 // @desc    Create a new post
 // @route   POST /api/posts
@@ -243,6 +244,18 @@ const deletePost = asyncHandler(async (req, res) => {
   if (post.user.toString() !== req.user._id.toString()) {
     res.status(403)
     throw new Error('Not authorized to delete this post')
+  }
+
+  // Delete image from Cloudinary if it exists (non-blocking)
+  if (post.image) {
+    try {
+      const urlParts = post.image.split('/')
+      const fileWithExt = urlParts[urlParts.length - 1]
+      const publicId = `LinkSphereAI/posts/${fileWithExt.split('.')[0]}`
+      await cloudinary.uploader.destroy(publicId)
+    } catch (err) {
+      console.error('Cloudinary delete failed (non-blocking):', err.message)
+    }
   }
 
   await Comment.deleteMany({ post: post._id })
